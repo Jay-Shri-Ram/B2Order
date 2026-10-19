@@ -1,0 +1,8 @@
+{
+  "name": "Apex B2B Order Hub & ERP",
+  "description": "Enterprise B2B order entry, catalog, staff console, and real-time offline sync ERP with role-based access control.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

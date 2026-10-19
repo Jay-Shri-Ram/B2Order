@@ -21,6 +21,7 @@ export interface Customer {
   phone: string;
   email: string;
   address: string;
+  location: string; // Location / City / Area for geographic filtering
   creditLimit: number;
   outstandingBalance: number;
   active: boolean;
@@ -50,7 +51,7 @@ export interface Product {
   unitId: string;
   unitName: string;
   wholesalePrice: number;
-  costPrice: number; // Admin only, redacted for Salesman/Manager
+  costPrice: number;
   stockQuantity: number;
   minStockAlert: number;
   active: boolean;
@@ -80,6 +81,7 @@ export interface Order {
   customerPhone: string;
   customerCompany?: string;
   customerAddress?: string;
+  customerLocation?: string;
   salesmanId: string;
   salesmanName: string;
   items: OrderItem[];
@@ -123,6 +125,23 @@ export interface AuditLog {
   ipAddress?: string;
 }
 
+export interface OrderReceiving {
+  id: string;
+  receiptNumber: string;
+  supplierName: string;
+  receivedDate: string;
+  receivedBy: string;
+  receivedByName: string;
+  items: {
+    productId: string;
+    sku: string;
+    name: string;
+    quantityReceived: number;
+    unit: string;
+  }[];
+  notes?: string;
+}
+
 export interface FirebaseConfig {
   apiKey: string;
   authDomain: string;
@@ -132,6 +151,24 @@ export interface FirebaseConfig {
   appId: string;
   firestoreDatabaseId?: string;
 }
+
+export type ViewPermissionId =
+  | 'order-entry'
+  | 'order-history'
+  | 'catalog'
+  | 'demand'
+  | 'customers'
+  | 'reports'
+  | 'sheets'
+  | 'staff'
+  | 'profit-analysis'
+  | 'security';
+
+export type RolePermissionsMap = {
+  [role in UserRole]: {
+    [viewId in ViewPermissionId]: boolean;
+  };
+};
 
 export interface AppSettings {
   companyName: string;
@@ -147,6 +184,10 @@ export interface AppSettings {
   firebaseConfig?: FirebaseConfig;
   isFirebaseConnected?: boolean;
   lastSyncTimestamp?: string;
+  adminPassword?: string; // 6-character / 6-word password for Admin Console
+  rolePermissions?: RolePermissionsMap; // Dynamic module access toggles per role
+  googleSpreadsheetId?: string;
+  googleSpreadsheetUrl?: string;
 }
 
 export interface SmsMessage {

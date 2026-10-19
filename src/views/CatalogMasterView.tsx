@@ -9,15 +9,21 @@ import {
   Layers,
   Box,
   X,
-  CheckCircle,
-  Eye,
-  EyeOff
+  Upload,
+  Download,
+  CheckCircle2
 } from 'lucide-react';
 import { Product, Category, Unit } from '../types';
 import { ApexDB } from '../db/indexedDb';
 import { useAuth } from '../context/AuthContext';
 import { SmsNotifier } from '../services/smsService';
 import { FirebaseSync } from '../services/firebaseSync';
+import {
+  downloadProductTemplate,
+  downloadCategoryTemplate,
+  parseProductCsv,
+  parseCategoryCsv
+} from '../services/exportService';
 
 export const CatalogMasterView: React.FC = () => {
   const { currentUser, isAdmin } = useAuth();
@@ -28,16 +34,11 @@ export const CatalogMasterView: React.FC = () => {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [filterLowStockOnly, setFilterLowStockOnly] = useState(false);
+  const [importStatus, setImportStatus] = useState<string | null>(null);
 
   // Modals
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-
-  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-
-  const [unitModalOpen, setUnitModalOpen] = useState(false);
-  const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
 
   // Product Form State
   const [prodForm, setProdForm] = useState({
@@ -131,7 +132,6 @@ export const CatalogMasterView: React.FC = () => {
 
     await ApexDB.put('products', savedProduct);
 
-    // If stock drops below threshold, trigger SMS alert
     if (savedProduct.stockQuantity <= savedProduct.minStockAlert) {
       await SmsNotifier.sendStockAlertSms(savedProduct);
     }
@@ -164,7 +164,86 @@ export const CatalogMasterView: React.FC = () => {
     await loadAll();
   };
 
-  // Filter products
+  // CSV Import for Products
+  const handleProductImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const text = evt.target?.result as string;
+      if (text) {
+        const { products: parsed, errors } = parseProductCsv(text, categories);
+        if (errors.length > 0 && parsed.length === 0) {
+          alert(`Import errors:\n${errors.join('\n')}`);
+          return;
+        }
+
+        let importedCount = 0;
+        for (const item of parsed) {
+          if (item.sku && item.name) {
+            const full: Product = {
+              id: `prod-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+              sku: item.sku,
+              name: item.name,
+              categoryId: item.categoryId || categories[0]?.id || 'cat-gen',
+              categoryName: item.categoryName || 'General',
+              unitId: 'unit-ea',
+              unitName: item.unitName || 'Standard Unit',
+              wholesalePrice: item.wholesalePrice || 0,
+              costPrice: item.costPrice || 0,
+              stockQuantity: item.stockQuantity || 0,
+              minStockAlert: item.minStockAlert || 5,
+              active: true,
+              updatedAt: new Date().toISOString()
+            };
+            await ApexDB.put('products', full);
+            importedCount++;
+          }
+        }
+
+        setImportStatus(`Successfully imported ${importedCount} product SKUs into catalog!`);
+        setTimeout(() => setImportStatus(null), 4000);
+        await loadAll();
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // CSV Import for Categories
+  const handleCategoryImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const text = evt.target?.result as string;
+      if (text) {
+        const { categories: parsed, errors } = parseCategoryCsv(text);
+        if (errors.length > 0 && parsed.length === 0) {
+          alert(`Category import errors:\n${errors.join('\n')}`);
+          return;
+        }
+
+        let count = 0;
+        for (const c of parsed) {
+          if (c.name) {
+            await ApexDB.put('categories', {
+              id: `cat-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+              name: c.name,
+              code: c.code || c.name.slice(0, 3).toUpperCase()
+            });
+            count++;
+          }
+        }
+        setImportStatus(`Imported ${count} new product categories!`);
+        setTimeout(() => setImportStatus(null), 4000);
+        await loadAll();
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const filteredProducts = products.filter((p) => {
     const matchesSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -183,22 +262,65 @@ export const CatalogMasterView: React.FC = () => {
             Catalog & Inventory Master
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            Enterprise wholesale product matrix, unit converters, and SKU inventory control.
+            Enterprise wholesale product matrix, categories dropdown, and bulk CSV import/export.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Action Controls */}
+        <div className="flex items-center gap-2 flex-wrap">
           {activeTab === 'products' && (
-            <button
-              onClick={openAddProduct}
-              className="px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 flex items-center gap-1.5 shadow-xs transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Add Product SKU
-            </button>
+            <>
+              <button
+                onClick={downloadProductTemplate}
+                className="px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 shadow-xs"
+                title="Download CSV import template"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Download Template
+              </button>
+
+              <label className="px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 shadow-xs cursor-pointer">
+                <Upload className="w-3.5 h-3.5 text-indigo-600" />
+                Import Products CSV
+                <input type="file" accept=".csv" onChange={handleProductImport} className="hidden" />
+              </label>
+
+              <button
+                onClick={openAddProduct}
+                className="px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 flex items-center gap-1.5 shadow-xs transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Add Product
+              </button>
+            </>
+          )}
+
+          {activeTab === 'categories' && (
+            <>
+              <button
+                onClick={downloadCategoryTemplate}
+                className="px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 shadow-xs"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Category Template
+              </button>
+
+              <label className="px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 shadow-xs cursor-pointer">
+                <Upload className="w-3.5 h-3.5 text-indigo-600" />
+                Import Categories CSV
+                <input type="file" accept=".csv" onChange={handleCategoryImport} className="hidden" />
+              </label>
+            </>
           )}
         </div>
       </div>
+
+      {importStatus && (
+        <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2 animate-in fade-in duration-150">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>{importStatus}</span>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex border-b border-slate-200 dark:border-slate-800 text-xs font-semibold gap-4">
@@ -240,7 +362,7 @@ export const CatalogMasterView: React.FC = () => {
       {/* Tab 1: Products */}
       {activeTab === 'products' && (
         <div className="space-y-4">
-          {/* Search & Filter Bar */}
+          {/* Search & Categories Dropdown List */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
@@ -254,18 +376,22 @@ export const CatalogMasterView: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2 flex-wrap text-xs">
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 font-medium"
-              >
-                <option value="all">All Categories</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+              {/* Category Dropdown List */}
+              <div className="flex items-center gap-1.5">
+                <Layers className="w-4 h-4 text-slate-400 shrink-0" />
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 font-medium"
+                >
+                  <option value="all">All Categories ({categories.length})</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               <button
                 onClick={() => setFilterLowStockOnly(!filterLowStockOnly)}
@@ -281,7 +407,7 @@ export const CatalogMasterView: React.FC = () => {
             </div>
           </div>
 
-          {/* Table */}
+          {/* High Density Table */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
@@ -362,7 +488,10 @@ export const CatalogMasterView: React.FC = () => {
       {activeTab === 'categories' && (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Active Product Categories</h3>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Active Product Categories</h3>
+              <p className="text-[11px] text-slate-400">Manage categories and bulk import via CSV</p>
+            </div>
             <button
               onClick={() => {
                 const name = prompt('Enter new category name:');
@@ -403,8 +532,8 @@ export const CatalogMasterView: React.FC = () => {
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">Packaging Units & Multipliers</h3>
             <button
               onClick={() => {
-                const name = prompt('Enter unit name (e.g. Master Carton 36):');
-                const shortCode = prompt('Enter short code (e.g. CRT-36):') || 'UNIT';
+                const name = prompt('Enter unit name:');
+                const shortCode = prompt('Enter short code:') || 'UNIT';
                 if (name) {
                   ApexDB.put('units', { id: `unit-${Date.now()}`, name, shortCode, multiplier: 1 });
                   loadAll();
@@ -539,11 +668,7 @@ export const CatalogMasterView: React.FC = () => {
                 <div>
                   <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Unit Margin</label>
                   <div className="font-mono text-sm font-bold text-emerald-600 pt-1">
-                    ${(prodForm.wholesalePrice - prodForm.costPrice).toFixed(2)} (
-                    {prodForm.wholesalePrice > 0
-                      ? (((prodForm.wholesalePrice - prodForm.costPrice) / prodForm.wholesalePrice) * 100).toFixed(1)
-                      : 0}
-                    %)
+                    ${(prodForm.wholesalePrice - prodForm.costPrice).toFixed(2)}
                   </div>
                 </div>
               </div>

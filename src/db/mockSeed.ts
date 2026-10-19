@@ -1,4 +1,15 @@
-import { Customer, Category, Unit, Product, StaffMember, Order, AuditLog, AppSettings, SmsMessage } from '../types';
+import {
+  Customer,
+  Category,
+  Unit,
+  Product,
+  StaffMember,
+  Order,
+  AuditLog,
+  AppSettings,
+  SmsMessage,
+  RolePermissionsMap
+} from '../types';
 
 export const INITIAL_STAFF: StaffMember[] = [
   {
@@ -10,6 +21,7 @@ export const INITIAL_STAFF: StaffMember[] = [
     active: true,
     lastLoginAt: new Date(Date.now() - 1000 * 60 * 12).toISOString(),
     createdAt: '2026-01-10T08:00:00Z',
+    tempPassword: 'ADMIN1'
   },
   {
     id: 'staff-mgr-01',
@@ -20,6 +32,7 @@ export const INITIAL_STAFF: StaffMember[] = [
     active: true,
     lastLoginAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
     createdAt: '2026-01-15T09:30:00Z',
+    tempPassword: 'MGR123'
   },
   {
     id: 'staff-sales-01',
@@ -30,6 +43,7 @@ export const INITIAL_STAFF: StaffMember[] = [
     active: true,
     lastLoginAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
     createdAt: '2026-02-01T10:15:00Z',
+    tempPassword: 'SALE01'
   },
   {
     id: 'staff-sales-02',
@@ -40,6 +54,7 @@ export const INITIAL_STAFF: StaffMember[] = [
     active: false,
     lastLoginAt: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
     createdAt: '2026-02-14T11:00:00Z',
+    tempPassword: 'SALE02'
   }
 ];
 
@@ -67,7 +82,8 @@ export const INITIAL_CUSTOMERS: Customer[] = [
     company: 'Metropolitan Bistro Group',
     phone: '+1 (555) 702-9912',
     email: 'purchasing@metrobistro.com',
-    address: '840 Market Street, Suite 400, Financial District',
+    address: '840 Market Street, Suite 400',
+    location: 'Financial District',
     creditLimit: 25000,
     outstandingBalance: 6420,
     active: true,
@@ -81,6 +97,7 @@ export const INITIAL_CUSTOMERS: Customer[] = [
     phone: '+1 (555) 881-4432',
     email: 'orders@apexroasters.co',
     address: '124 Industrial Way, Pier 18',
+    location: 'Westside Industrial',
     creditLimit: 15000,
     outstandingBalance: 12150,
     active: true,
@@ -94,6 +111,7 @@ export const INITIAL_CUSTOMERS: Customer[] = [
     phone: '+1 (555) 412-8876',
     email: 'inventory@pacificharbour.org',
     address: '99 Marina Boulevard, Tower East',
+    location: 'Harbour Bay',
     creditLimit: 50000,
     outstandingBalance: 4200,
     active: true,
@@ -107,8 +125,9 @@ export const INITIAL_CUSTOMERS: Customer[] = [
     phone: '+1 (555) 909-3211',
     email: 'd.kowalski@summitgrocers.com',
     address: '310 Crestview Avenue',
+    location: 'North Metro',
     creditLimit: 18000,
-    outstandingBalance: 17850, // Near limit
+    outstandingBalance: 17850,
     active: true,
     createdAt: '2026-02-25T09:10:00Z'
   },
@@ -120,10 +139,25 @@ export const INITIAL_CUSTOMERS: Customer[] = [
     phone: '+1 (555) 633-1200',
     email: 'nadia@verdantcatering.com',
     address: '45 Greenpoint Lane, Warehouse B',
+    location: 'Downtown District',
     creditLimit: 10000,
     outstandingBalance: 1100,
     active: true,
     createdAt: '2026-03-05T13:00:00Z'
+  },
+  {
+    id: 'cust-106',
+    code: 'CUST-0846',
+    name: 'Victor Vance',
+    company: 'Bayfront Yacht Club Dining',
+    phone: '+1 (555) 321-9876',
+    email: 'catering@bayfrontyc.com',
+    address: '12 Marina Promenade',
+    location: 'Harbour Bay',
+    creditLimit: 30000,
+    outstandingBalance: 2400,
+    active: true,
+    createdAt: '2026-03-08T11:00:00Z'
   }
 ];
 
@@ -168,7 +202,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     unitName: 'Bulk Bag (25 kg)',
     wholesalePrice: 76.00,
     costPrice: 44.00,
-    stockQuantity: 8, // Low Stock Alert
+    stockQuantity: 8,
     minStockAlert: 12,
     active: true,
     updatedAt: '2026-03-12T08:30:00Z'
@@ -213,7 +247,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     unitName: 'Carton (24 units)',
     wholesalePrice: 168.00,
     costPrice: 98.00,
-    stockQuantity: 5, // Critical Low Stock
+    stockQuantity: 5,
     minStockAlert: 15,
     active: true,
     updatedAt: '2026-03-14T11:45:00Z'
@@ -259,6 +293,7 @@ export const INITIAL_ORDERS: Order[] = [
     customerPhone: '+1 (555) 702-9912',
     customerCompany: 'Metropolitan Bistro Group',
     customerAddress: '840 Market Street, Suite 400',
+    customerLocation: 'Financial District',
     salesmanId: 'staff-sales-01',
     salesmanName: 'Marcus Vance',
     items: [
@@ -306,6 +341,7 @@ export const INITIAL_ORDERS: Order[] = [
     customerPhone: '+1 (555) 412-8876',
     customerCompany: 'Pacific Harbour Hotel & Suites',
     customerAddress: '99 Marina Boulevard, Tower East',
+    customerLocation: 'Harbour Bay',
     salesmanId: 'staff-sales-01',
     salesmanName: 'Marcus Vance',
     items: [
@@ -353,6 +389,7 @@ export const INITIAL_ORDERS: Order[] = [
     customerPhone: '+1 (555) 881-4432',
     customerCompany: 'Apex Artisan Roasters',
     customerAddress: '124 Industrial Way, Pier 18',
+    customerLocation: 'Westside Industrial',
     salesmanId: 'staff-sales-01',
     salesmanName: 'Marcus Vance',
     items: [
@@ -384,6 +421,45 @@ export const INITIAL_ORDERS: Order[] = [
   }
 ];
 
+export const INITIAL_ROLE_PERMISSIONS: RolePermissionsMap = {
+  admin: {
+    'order-entry': true,
+    'order-history': true,
+    'catalog': true,
+    'demand': true,
+    'customers': true,
+    'reports': true,
+    'sheets': true,
+    'staff': true,
+    'profit-analysis': true,
+    'security': true
+  },
+  manager: {
+    'order-entry': true,
+    'order-history': true,
+    'catalog': true,
+    'demand': true,
+    'customers': true,
+    'reports': true,
+    'sheets': true,
+    'staff': false,
+    'profit-analysis': false,
+    'security': false
+  },
+  salesman: {
+    'order-entry': true,
+    'order-history': false,
+    'catalog': false,
+    'demand': false,
+    'customers': false,
+    'reports': false,
+    'sheets': false,
+    'staff': false,
+    'profit-analysis': false,
+    'security': false
+  }
+};
+
 export const INITIAL_SETTINGS: AppSettings = {
   companyName: 'Apex Logistics & B2B Order Hub',
   companyAddress: '500 Enterprise Way, Central Logistics Park, Bay District',
@@ -395,7 +471,9 @@ export const INITIAL_SETTINGS: AppSettings = {
   smsNotificationsEnabled: true,
   autoSyncEnabled: true,
   isFirebaseConnected: false,
-  lastSyncTimestamp: new Date().toISOString()
+  lastSyncTimestamp: new Date().toISOString(),
+  adminPassword: 'APEX99', // 6-character master Admin password
+  rolePermissions: INITIAL_ROLE_PERMISSIONS
 };
 
 export const INITIAL_AUDIT_LOGS: AuditLog[] = [
@@ -407,27 +485,7 @@ export const INITIAL_AUDIT_LOGS: AuditLog[] = [
     actorRole: 'admin',
     action: 'SYSTEM_BOOT',
     targetEntity: 'ApexDB',
-    details: 'System initialized in offline-first mode with IndexedDB local caching.'
-  },
-  {
-    id: 'aud-002',
-    timestamp: '2026-03-19T08:31:05Z',
-    actorId: 'staff-sales-01',
-    actorName: 'Marcus Vance',
-    actorRole: 'salesman',
-    action: 'ORDER_DISPATCH',
-    targetEntity: 'ORD-2026-9021',
-    details: 'Order created for Metropolitan Bistro Group. Dispatched SMS alert to company owner.'
-  },
-  {
-    id: 'aud-003',
-    timestamp: '2026-03-19T09:20:00Z',
-    actorId: 'staff-admin-01',
-    actorName: 'Alexander Wright',
-    actorRole: 'admin',
-    action: 'STAFF_STATUS_UPDATE',
-    targetEntity: 'Chloe Bennett',
-    details: 'Status switched to INACTIVE per HR department notice.'
+    details: 'System initialized with dynamic RBAC matrix and Google Workspace integration.'
   }
 ];
 
@@ -439,30 +497,8 @@ export const INITIAL_SMS_LOGS: SmsMessage[] = [
     recipientName: 'Company Owner (Mobile)',
     orderNumber: 'ORD-2026-9021',
     type: 'order_confirmation',
-    message: '📦 [Apex ERP] New Order #ORD-2026-9021 received for Metropolitan Bistro Group. Total: $1,029.83. Items: 2 lines. Sales Rep: Marcus Vance. Stock status: Nominal.',
+    message: '📦 [Apex ERP] New Order #ORD-2026-9021 received for Metropolitan Bistro Group. Total: $1,029.83.',
     status: 'delivered',
-    gateway: 'Apex Gateway (Live Cloud)'
-  },
-  {
-    id: 'sms-002',
-    timestamp: '2026-03-19T09:16:00Z',
-    recipientPhone: '+1 (555) 948-2211',
-    recipientName: 'Company Owner (Mobile)',
-    orderNumber: 'ORD-2026-9022',
-    type: 'order_confirmation',
-    message: '📦 [Apex ERP] New Order #ORD-2026-9022 received for Pacific Harbour Hotel & Suites. Total: $1,502.73. Items: 2 lines. Sales Rep: Marcus Vance.',
-    status: 'delivered',
-    gateway: 'Apex Gateway (Live Cloud)'
-  },
-  {
-    id: 'sms-003',
-    timestamp: '2026-03-19T10:46:00Z',
-    recipientPhone: '+1 (555) 948-2211',
-    recipientName: 'Company Owner (Mobile)',
-    orderNumber: 'ORD-2026-9023',
-    type: 'stock_alert',
-    message: '⚠️ [Apex Stock Warning] Aged Balsamic Glaze of Modena PGI (SKU: APX-CDT-002) is down to 5 units (Threshold: 15). Reorder recommended.',
-    status: 'delivered',
-    gateway: 'Apex Gateway (Live Cloud)'
+    gateway: 'Apex Cloud Telecom Gateway'
   }
 ];

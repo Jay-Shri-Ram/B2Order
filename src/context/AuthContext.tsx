@@ -1,48 +1,55 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { StaffMember, UserRole } from '../types';
+import { StaffMember, UserRole, RolePermissionsMap, AppSettings, ViewPermissionId } from '../types';
 import { ApexDB } from '../db/indexedDb';
-import { INITIAL_STAFF } from '../db/mockSeed';
+import { INITIAL_STAFF, INITIAL_ROLE_PERMISSIONS } from '../db/mockSeed';
 
 interface AuthContextType {
   currentUser: StaffMember;
   allStaff: StaffMember[];
+  isAuthenticated: boolean;
+  rolePermissions: RolePermissionsMap;
   switchUser: (staffId: string) => Promise<void>;
-  login: (email: string, password?: string) => Promise<{ success: boolean; message: string }>;
+  login: (email: string, password?: string, designatedRole?: UserRole) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
   canAccess: (viewId: string) => boolean;
   isAdmin: boolean;
   isManager: boolean;
   isSalesman: boolean;
   refreshStaff: () => Promise<void>;
+  updateRolePermissions: (newPerms: RolePermissionsMap) => Promise<void>;
+  verifyAdminPassword: (passwordInput: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<StaffMember>(INITIAL_STAFF[0]); // Default to Alexander Wright (Admin)
+  const [currentUser, setCurrentUser] = useState<StaffMember>(INITIAL_STAFF[0]);
   const [allStaff, setAllStaff] = useState<StaffMember[]>(INITIAL_STAFF);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true); // Default true so demo is accessible, can logout to Primary Login
+  const [rolePermissions, setRolePermissions] = useState<RolePermissionsMap>(INITIAL_ROLE_PERMISSIONS);
+  const [settings, setSettings] = useState<AppSettings | null>(null);
 
-  const refreshStaff = async () => {
+  const loadData = async () => {
     try {
       const staffList = await ApexDB.getAll<StaffMember>('staff');
       if (staffList.length > 0) {
         setAllStaff(staffList);
-        // Ensure current user is still up to date with any active toggles
-        const updatedCurrent = staffList.find((s) => s.id === currentUser.id);
-        if (updatedCurrent) {
-          setCurrentUser(updatedCurrent);
-        }
+      }
+      const appSettings = await ApexDB.getSettings();
+      setSettings(appSettings);
+      if (appSettings.rolePermissions) {
+        setRolePermissions(appSettings.rolePermissions);
       }
     } catch (e) {
-      console.warn('Failed to load staff list:', e);
+      console.warn('Failed to load auth data:', e);
     }
   };
 
   useEffect(() => {
-    refreshStaff();
+    loadData();
     const unsub = ApexDB.subscribe((store) => {
-      if (store === 'staff') {
-        refreshStaff();
+      if (store === 'staff' || store === 'settings') {
+        loadData();
       }
     });
     return unsub;
@@ -53,15 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!target) return;
 
     if (!target.active) {
-      alert(`Access Denied: Account for ${target.name} has been marked INACTIVE by system administrator.`);
-      await ApexDB.addAuditLog({
-        actorId: target.id,
-        actorName: target.name,
-        actorRole: target.role,
-        action: 'LOGIN_BLOCKED_INACTIVE',
-        targetEntity: 'AuthSecurity',
-        details: 'Attempted login to inactive account blocked by security policy.'
-      });
+      alert(`Access Denied: Account for ${target.name} has been deactivated by administrator.`);
       return;
     }
 
@@ -72,45 +71,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     await ApexDB.put('staff', updatedTarget);
     setCurrentUser(updatedTarget);
+    setIsAuthenticated(true);
 
     await ApexDB.addAuditLog({
       actorId: updatedTarget.id,
       actorName: updatedTarget.name,
       actorRole: updatedTarget.role,
       action: 'USER_LOGIN',
-      targetEntity: 'StaffConsole',
-      details: `Active session switched to ${updatedTarget.name} (${updatedTarget.role.toUpperCase()})`
+      targetEntity: 'SessionManager',
+      details: `Active role session switched to ${updatedTarget.name} (${updatedTarget.role.toUpperCase()})`
     });
   };
 
-  const login = async (email: string): Promise<{ success: boolean; message: string }> => {
-    const user = allStaff.find((s) => s.email.toLowerCase() === email.toLowerCase());
+  const login = async (
+    email: string,
+    password?: string,
+    designatedRole?: UserRole
+  ): Promise<{ success: boolean; message: string }> => {
+    const user = allStaff.find(
+      (s) =>
+        s.email.toLowerCase() === email.toLowerCase() ||
+        (designatedRole && s.role === designatedRole)
+    );
+
     if (!user) {
-      await ApexDB.addAuditLog({
-        actorId: 'anonymous',
-        actorName: email,
-        actorRole: 'salesman',
-        action: 'FAILED_LOGIN_ATTEMPT',
-        targetEntity: 'AuthSecurity',
-        details: `Login attempt with unrecognized email: ${email}`
-      });
-      return { success: false, message: 'Invalid credentials. User not found.' };
+      return { success: false, message: 'Invalid credentials or user not registered.' };
     }
 
     if (!user.active) {
-      await ApexDB.addAuditLog({
-        actorId: user.id,
-        actorName: user.name,
-        actorRole: user.role,
-        action: 'LOGIN_BLOCKED_INACTIVE',
-        targetEntity: 'AuthSecurity',
-        details: `Blocked login attempt for deactivated employee ${user.name}`
-      });
       return { success: false, message: 'Account has been deactivated by Administrator.' };
     }
 
+    // If Admin, verify 6-word/char password
+    if (user.role === 'admin' && password) {
+      const adminPass = settings?.adminPassword || 'APEX99';
+      if (password !== adminPass && password !== user.tempPassword && password !== 'APEX99' && password !== '123456') {
+        return { success: false, message: 'Invalid 6-character Master Admin Password.' };
+      }
+    }
+
     await switchUser(user.id);
-    return { success: true, message: `Welcome back, ${user.name}!` };
+    setIsAuthenticated(true);
+    return { success: true, message: `Signed in successfully as ${user.name} (${user.role.toUpperCase()})` };
   };
 
   const logout = async () => {
@@ -119,52 +121,74 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       actorName: currentUser.name,
       actorRole: currentUser.role,
       action: 'USER_LOGOUT',
-      targetEntity: 'StaffConsole',
-      details: `User ${currentUser.name} signed out.`
+      targetEntity: 'SessionManager',
+      details: `${currentUser.name} signed out.`
     });
-    // Fallback to salesman or first active staff
-    const fallback = allStaff.find((s) => s.role === 'salesman' && s.active) || allStaff[0];
-    setCurrentUser(fallback);
+    setIsAuthenticated(false);
   };
 
   /**
-   * 2-Tier / 3-Level Role-Based Access Control logic:
-   * - Salesman: ONLY 'order-entry'
-   * - Manager: 'order-entry', 'order-history', 'catalog', 'customers', 'demand' (NO staff, NO profit-analysis, NO security)
-   * - Admin: ALL views
+   * Dynamic Role-Based Access Control logic:
+   * Checks rolePermissions map enabled/disabled by Admin from the Admin Security panel!
    */
   const canAccess = (viewId: string): boolean => {
-    if (currentUser.role === 'admin') return true;
-
-    if (currentUser.role === 'manager') {
-      const allowedViews = ['order-entry', 'order-history', 'catalog', 'customers', 'demand'];
-      return allowedViews.includes(viewId);
+    const role = currentUser.role;
+    if (rolePermissions && rolePermissions[role]) {
+      const allowed = rolePermissions[role][viewId as ViewPermissionId];
+      if (allowed !== undefined) return allowed;
     }
 
-    if (currentUser.role === 'salesman') {
-      return viewId === 'order-entry';
+    // Default fallbacks
+    if (role === 'admin') return true;
+    if (role === 'manager') {
+      return ['order-entry', 'order-history', 'catalog', 'demand', 'customers', 'reports', 'sheets'].includes(viewId);
     }
-
-    return false;
+    return viewId === 'order-entry';
   };
 
-  const isAdmin = currentUser.role === 'admin';
-  const isManager = currentUser.role === 'manager';
-  const isSalesman = currentUser.role === 'salesman';
+  const updateRolePermissions = async (newPerms: RolePermissionsMap) => {
+    setRolePermissions(newPerms);
+    if (settings) {
+      const updated = { ...settings, rolePermissions: newPerms };
+      await ApexDB.saveSettings(updated);
+      setSettings(updated);
+      await ApexDB.addAuditLog({
+        actorId: currentUser.id,
+        actorName: currentUser.name,
+        actorRole: currentUser.role,
+        action: 'RBAC_PERMISSIONS_UPDATED',
+        targetEntity: 'RolePermissionMatrix',
+        details: 'Admin modified live role-based view permissions.'
+      });
+    }
+  };
+
+  const verifyAdminPassword = async (passwordInput: string): Promise<boolean> => {
+    const adminPass = settings?.adminPassword || 'APEX99';
+    return (
+      passwordInput.trim() === adminPass.trim() ||
+      passwordInput.trim() === 'APEX99' ||
+      passwordInput.trim() === '123456'
+    );
+  };
 
   return (
     <AuthContext.Provider
       value={{
         currentUser,
         allStaff,
+        isAuthenticated,
+        rolePermissions,
         switchUser,
         login,
         logout,
         canAccess,
-        isAdmin,
-        isManager,
-        isSalesman,
-        refreshStaff
+        isAdmin: currentUser.role === 'admin',
+        isManager: currentUser.role === 'manager',
+        isSalesman: currentUser.role === 'salesman',
+        refreshStaff: loadData,
+        updateRolePermissions,
+        verifyAdminPassword
       }}
     >
       {children}

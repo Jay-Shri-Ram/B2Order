@@ -11,19 +11,25 @@ import {
   X,
   CreditCard,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  Download,
+  Upload,
+  CheckCircle2
 } from 'lucide-react';
 import { Customer } from '../types';
 import { ApexDB } from '../db/indexedDb';
 import { useAuth } from '../context/AuthContext';
 import { FirebaseSync } from '../services/firebaseSync';
+import { downloadCustomerTemplate, parseCustomerCsv } from '../services/exportService';
 
 export const CustomerMasterView: React.FC = () => {
   const { currentUser } = useAuth();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState('');
+  const [locationFilter, setLocationFilter] = useState('all');
   const [customerModalOpen, setCustomerModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [importStatus, setImportStatus] = useState<string | null>(null);
 
   // Payment Recording Modal
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -37,6 +43,7 @@ export const CustomerMasterView: React.FC = () => {
     phone: '',
     email: '',
     address: '',
+    location: 'Financial District',
     creditLimit: 20000,
     outstandingBalance: 0,
     active: true
@@ -57,6 +64,8 @@ export const CustomerMasterView: React.FC = () => {
     return unsub;
   }, []);
 
+  const availableLocations = Array.from(new Set(customers.map((c) => c.location).filter(Boolean)));
+
   const openAddCustomer = () => {
     setEditingCustomer(null);
     setForm({
@@ -66,6 +75,7 @@ export const CustomerMasterView: React.FC = () => {
       phone: '+1 (555) ',
       email: '',
       address: '',
+      location: availableLocations[0] || 'Financial District',
       creditLimit: 25000,
       outstandingBalance: 0,
       active: true
@@ -82,6 +92,7 @@ export const CustomerMasterView: React.FC = () => {
       phone: cust.phone,
       email: cust.email,
       address: cust.address,
+      location: cust.location || 'Financial District',
       creditLimit: cust.creditLimit,
       outstandingBalance: cust.outstandingBalance,
       active: cust.active
@@ -104,6 +115,7 @@ export const CustomerMasterView: React.FC = () => {
       phone: form.phone.trim(),
       email: form.email.trim(),
       address: form.address.trim(),
+      location: form.location.trim() || 'Financial District',
       creditLimit: Number(form.creditLimit) || 10000,
       outstandingBalance: Number(form.outstandingBalance) || 0,
       active: form.active,
@@ -117,7 +129,7 @@ export const CustomerMasterView: React.FC = () => {
       actorRole: currentUser.role,
       action: editingCustomer ? 'CUSTOMER_UPDATE' : 'CUSTOMER_CREATE',
       targetEntity: saved.code,
-      details: `${editingCustomer ? 'Updated' : 'Created'} client ${saved.name} (${saved.company})`
+      details: `${editingCustomer ? 'Updated' : 'Created'} client ${saved.name} (${saved.company}) in ${saved.location}`
     });
 
     FirebaseSync.triggerSync().catch(() => {});
@@ -152,14 +164,62 @@ export const CustomerMasterView: React.FC = () => {
     await loadCustomers();
   };
 
+  // CSV Import for Customers
+  const handleCustomerImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const text = evt.target?.result as string;
+      if (text) {
+        const { customers: parsed, errors } = parseCustomerCsv(text);
+        if (errors.length > 0 && parsed.length === 0) {
+          alert(`Customer import errors:\n${errors.join('\n')}`);
+          return;
+        }
+
+        let count = 0;
+        for (const c of parsed) {
+          if (c.name && c.company) {
+            const full: Customer = {
+              id: `cust-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+              code: c.code || `CUST-${Math.floor(1000 + Math.random() * 9000)}`,
+              name: c.name,
+              company: c.company,
+              phone: c.phone || '',
+              email: c.email || '',
+              address: c.address || '',
+              location: c.location || 'Financial District',
+              creditLimit: c.creditLimit || 20000,
+              outstandingBalance: c.outstandingBalance || 0,
+              active: true,
+              createdAt: new Date().toISOString()
+            };
+            await ApexDB.put('customers', full);
+            count++;
+          }
+        }
+
+        setImportStatus(`Successfully imported ${count} customer accounts!`);
+        setTimeout(() => setImportStatus(null), 4000);
+        await loadCustomers();
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const filteredCustomers = customers.filter((c) => {
     const s = search.toLowerCase();
-    return (
+    const matchesSearch =
       c.name.toLowerCase().includes(s) ||
       c.company.toLowerCase().includes(s) ||
       c.code.toLowerCase().includes(s) ||
-      c.phone.toLowerCase().includes(s)
-    );
+      c.phone.toLowerCase().includes(s) ||
+      (c.location && c.location.toLowerCase().includes(s));
+
+    const matchesLocation = locationFilter === 'all' || c.location === locationFilter;
+    return matchesSearch && matchesLocation;
   });
 
   return (
@@ -168,33 +228,72 @@ export const CustomerMasterView: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Customer Master & Accounts
+            Customer Master & Geographic Accounts
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            Wholesale accounts, credit lines, outstanding balances, and delivery terms.
+            Wholesale accounts, location routing, credit lines, and CSV customer import.
           </p>
         </div>
 
-        <button
-          onClick={openAddCustomer}
-          className="px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 flex items-center gap-1.5 shadow-xs transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Add Customer Account
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={downloadCustomerTemplate}
+            className="px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 shadow-xs"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Customer Template
+          </button>
+
+          <label className="px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 shadow-xs cursor-pointer">
+            <Upload className="w-3.5 h-3.5 text-indigo-600" />
+            Import Customers CSV
+            <input type="file" accept=".csv" onChange={handleCustomerImport} className="hidden" />
+          </label>
+
+          <button
+            onClick={openAddCustomer}
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 flex items-center gap-1.5 shadow-xs transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Add Customer
+          </button>
+        </div>
       </div>
 
-      {/* Search */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
-        <div className="relative">
+      {importStatus && (
+        <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2 animate-in fade-in duration-150">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>{importStatus}</span>
+        </div>
+      )}
+
+      {/* Search & Location Filter */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-col md:flex-row gap-3">
+        <div className="relative flex-1">
           <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by customer name, company, account code, or phone..."
+            placeholder="Search by customer name, company, account code, or location..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 rounded-xl text-xs sm:text-sm border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
           />
+        </div>
+
+        <div className="flex items-center gap-2 text-xs">
+          <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+          <select
+            value={locationFilter}
+            onChange={(e) => setLocationFilter(e.target.value)}
+            className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 font-medium"
+          >
+            <option value="all">All Locations ({customers.length})</option>
+            {availableLocations.map((loc) => (
+              <option key={loc} value={loc}>
+                {loc} ({customers.filter((c) => c.location === loc).length})
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -206,8 +305,8 @@ export const CustomerMasterView: React.FC = () => {
               <tr>
                 <th className="py-3 px-4">Account Code</th>
                 <th className="py-3 px-4">Customer & Company</th>
-                <th className="py-3 px-4">Contact Details</th>
-                <th className="py-3 px-4">Delivery Address</th>
+                <th className="py-3 px-4">Geographic Area</th>
+                <th className="py-3 px-4">Contact Info</th>
                 <th className="py-3 px-4 text-right">Credit Limit</th>
                 <th className="py-3 px-4 text-right">Outstanding Balance</th>
                 <th className="py-3 px-4 text-right">Actions</th>
@@ -226,10 +325,15 @@ export const CustomerMasterView: React.FC = () => {
                       <div className="text-[11px] text-slate-400">{c.company}</div>
                     </td>
                     <td className="py-3 px-4">
+                      <span className="inline-flex items-center gap-1 font-semibold text-slate-700 dark:text-slate-300">
+                        <MapPin className="w-3.5 h-3.5 text-indigo-500" />
+                        {c.location || 'General Zone'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
                       <div className="font-mono text-slate-600 dark:text-slate-300">{c.phone}</div>
                       <div className="text-[11px] text-slate-400">{c.email}</div>
                     </td>
-                    <td className="py-3 px-4 text-slate-500 truncate max-w-xs">{c.address}</td>
                     <td className="py-3 px-4 text-right font-mono font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
                       ${c.creditLimit.toLocaleString()}
                     </td>
@@ -319,15 +423,29 @@ export const CustomerMasterView: React.FC = () => {
               </div>
             </div>
 
-            <div className="text-xs">
-              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Primary Contact Name *</label>
-              <input
-                type="text"
-                required
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100"
-              />
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Contact Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Geographic Area / City *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Financial District, Harbour Bay"
+                  value={form.location}
+                  onChange={(e) => setForm({ ...form, location: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
@@ -417,7 +535,7 @@ export const CustomerMasterView: React.FC = () => {
 
             <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs">
               <div className="font-bold text-slate-900 dark:text-white">{paymentCustomer.name}</div>
-              <div className="text-slate-500">{paymentCustomer.company}</div>
+              <div className="text-slate-500">{paymentCustomer.company} · {paymentCustomer.location}</div>
               <div className="mt-1 font-mono text-slate-700 dark:text-slate-300 font-bold">
                 Current Outstanding: ${paymentCustomer.outstandingBalance.toLocaleString()}
               </div>

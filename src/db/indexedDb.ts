@@ -8,7 +8,8 @@ import {
   DeletedOrder,
   AuditLog,
   AppSettings,
-  SmsMessage
+  SmsMessage,
+  OrderReceiving
 } from '../types';
 import {
   INITIAL_STAFF,
@@ -23,9 +24,9 @@ import {
 } from './mockSeed';
 
 const DB_NAME = 'ApexB2BOrderHub_DB';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
-type StoreName =
+export type StoreName =
   | 'orders'
   | 'deletedOrders'
   | 'customers'
@@ -35,7 +36,8 @@ type StoreName =
   | 'staff'
   | 'auditLogs'
   | 'settings'
-  | 'smsLogs';
+  | 'smsLogs'
+  | 'orderReceiving';
 
 type ChangeListener = (store: StoreName) => void;
 
@@ -63,7 +65,6 @@ class ApexDatabase {
         console.error('Error in listener notification:', err);
       }
     });
-    // Also dispatch window event for multi-tab or global state sync
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('apex-db-change', { detail: { store } }));
     }
@@ -93,7 +94,8 @@ class ApexDatabase {
             'staff',
             'auditLogs',
             'settings',
-            'smsLogs'
+            'smsLogs',
+            'orderReceiving'
           ];
 
           storeNames.forEach((name) => {
@@ -160,6 +162,20 @@ class ApexDatabase {
         await new Promise((resolve) => {
           seedTx.oncomplete = () => resolve(true);
         });
+      } else {
+        // Ensure settings has rolePermissions and adminPassword if upgrading
+        const settingsTx = db.transaction(['settings'], 'readwrite');
+        const settingsStore = settingsTx.objectStore('settings');
+        const req = settingsStore.get('main');
+        req.onsuccess = () => {
+          if (req.result && (!req.result.rolePermissions || !req.result.adminPassword)) {
+            settingsStore.put({
+              ...req.result,
+              rolePermissions: req.result.rolePermissions || INITIAL_SETTINGS.rolePermissions,
+              adminPassword: req.result.adminPassword || 'APEX99'
+            });
+          }
+        };
       }
     } catch (err) {
       console.warn('Seeding initial data encountered error:', err);
@@ -178,11 +194,11 @@ class ApexDatabase {
       localStorage.setItem('apex_deletedOrders', JSON.stringify([]));
       localStorage.setItem('apex_auditLogs', JSON.stringify(INITIAL_AUDIT_LOGS));
       localStorage.setItem('apex_smsLogs', JSON.stringify(INITIAL_SMS_LOGS));
+      localStorage.setItem('apex_orderReceiving', JSON.stringify([]));
       localStorage.setItem('apex_settings', JSON.stringify({ key: 'main', ...INITIAL_SETTINGS }));
     }
   }
 
-  // Generic Get All
   public async getAll<T>(storeName: StoreName): Promise<T[]> {
     await this.init();
     if (this.isFallbackMode || typeof window === 'undefined' || !window.indexedDB) {
@@ -204,7 +220,6 @@ class ApexDatabase {
     });
   }
 
-  // Generic Get By ID
   public async getById<T>(storeName: StoreName, id: string): Promise<T | null> {
     await this.init();
     if (this.isFallbackMode || typeof window === 'undefined' || !window.indexedDB) {
@@ -227,7 +242,6 @@ class ApexDatabase {
     });
   }
 
-  // Generic Put (Insert or Update)
   public async put<T extends { id?: string; key?: string }>(storeName: StoreName, item: T): Promise<T> {
     await this.init();
     if (this.isFallbackMode || typeof window === 'undefined' || !window.indexedDB) {
@@ -262,7 +276,6 @@ class ApexDatabase {
     });
   }
 
-  // Generic Delete
   public async delete(storeName: StoreName, id: string): Promise<boolean> {
     await this.init();
     if (this.isFallbackMode || typeof window === 'undefined' || !window.indexedDB) {
@@ -291,7 +304,6 @@ class ApexDatabase {
     });
   }
 
-  // Specific helpers
   public async getSettings(): Promise<AppSettings> {
     const res = await this.getById<any>('settings', 'main');
     if (!res) {
@@ -299,6 +311,13 @@ class ApexDatabase {
       return INITIAL_SETTINGS;
     }
     const { key, ...settings } = res;
+    // ensure rolePermissions exists
+    if (!settings.rolePermissions) {
+      settings.rolePermissions = INITIAL_SETTINGS.rolePermissions;
+    }
+    if (!settings.adminPassword) {
+      settings.adminPassword = INITIAL_SETTINGS.adminPassword;
+    }
     return settings as AppSettings;
   }
 
@@ -327,7 +346,6 @@ class ApexDatabase {
     return fullSms;
   }
 
-  // Backup Export
   public async exportCompleteDatabase(): Promise<string> {
     const data: Record<string, any> = {
       version: DB_VERSION,
@@ -346,7 +364,8 @@ class ApexDatabase {
       'staff',
       'auditLogs',
       'settings',
-      'smsLogs'
+      'smsLogs',
+      'orderReceiving'
     ];
 
     for (const store of stores) {
@@ -356,7 +375,6 @@ class ApexDatabase {
     return JSON.stringify(data, null, 2);
   }
 
-  // Backup Restore with validation
   public async restoreDatabase(jsonString: string): Promise<{ success: boolean; message: string }> {
     try {
       const parsed = JSON.parse(jsonString);
@@ -378,16 +396,15 @@ class ApexDatabase {
         actorRole: 'admin',
         action: 'DATABASE_RESTORE',
         targetEntity: 'ApexDB',
-        details: 'Encrypted system database backup was successfully imported and restored.'
+        details: 'System database backup was successfully imported.'
       });
 
-      return { success: true, message: 'Database successfully restored and synchronized.' };
+      return { success: true, message: 'Database successfully restored.' };
     } catch (err: any) {
       return { success: false, message: `Restore error: ${err.message || 'Corrupt JSON data'}` };
     }
   }
 
-  // Reset to seed fixtures
   public async resetToFactoryData(): Promise<void> {
     const stores: StoreName[] = [
       'orders',
@@ -399,7 +416,8 @@ class ApexDatabase {
       'staff',
       'auditLogs',
       'settings',
-      'smsLogs'
+      'smsLogs',
+      'orderReceiving'
     ];
 
     for (const store of stores) {

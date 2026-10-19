@@ -15,7 +15,9 @@ import {
   Building,
   Smartphone,
   ChevronRight,
-  ShieldAlert
+  ShieldAlert,
+  MapPin,
+  Layers
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Product, Customer, OrderItem, Order, Category } from '../types';
@@ -30,6 +32,7 @@ export const OrderEntryView: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedLocation, setSelectedLocation] = useState<string>('all'); // Location filter
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [cart, setCart] = useState<OrderItem[]>([]);
@@ -63,6 +66,24 @@ export const OrderEntryView: React.FC = () => {
     });
     return unsub;
   }, []);
+
+  // Distinct locations from customers list
+  const availableLocations = Array.from(new Set(customers.map((c) => c.location).filter(Boolean)));
+
+  // Customers filtered depending on selected location
+  const locationFilteredCustomers = customers.filter(
+    (c) => selectedLocation === 'all' || c.location === selectedLocation
+  );
+
+  // If selected customer is no longer in the filtered list, pick the first one
+  useEffect(() => {
+    if (locationFilteredCustomers.length > 0) {
+      const exists = locationFilteredCustomers.some((c) => c.id === selectedCustomerId);
+      if (!exists) {
+        setSelectedCustomerId(locationFilteredCustomers[0].id);
+      }
+    }
+  }, [selectedLocation, locationFilteredCustomers]);
 
   const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
 
@@ -174,7 +195,7 @@ export const OrderEntryView: React.FC = () => {
     }
     if (isCreditExceeded) {
       const proceed = confirm(
-        `Warning: This order exceeds ${selectedCustomer.name}'s credit limit ($${selectedCustomer.creditLimit.toLocaleString()}). Manager override required. Do you wish to force dispatch?`
+        `Warning: This order exceeds ${selectedCustomer.name}'s credit limit ($${selectedCustomer.creditLimit.toLocaleString()}). Proceed with manager authorization?`
       );
       if (!proceed) return;
     }
@@ -192,6 +213,7 @@ export const OrderEntryView: React.FC = () => {
         customerPhone: selectedCustomer.phone,
         customerCompany: selectedCustomer.company,
         customerAddress: selectedCustomer.address,
+        customerLocation: selectedCustomer.location,
         salesmanId: currentUser.id,
         salesmanName: currentUser.name,
         items: [...cart],
@@ -211,10 +233,8 @@ export const OrderEntryView: React.FC = () => {
         synced: false
       };
 
-      // 1. Save order to IndexedDB
       await ApexDB.put('orders', newOrder);
 
-      // 2. Decrement stock quantities in IndexedDB & identify low-stock alerts
       const lowStockAlerts: Product[] = [];
       for (const item of cart) {
         const prod = products.find((p) => p.id === item.productId);
@@ -233,7 +253,6 @@ export const OrderEntryView: React.FC = () => {
         }
       }
 
-      // 3. Update customer outstanding balance if on Credit
       if (paymentMethod === 'Credit') {
         const updatedCustomer: Customer = {
           ...selectedCustomer,
@@ -242,23 +261,19 @@ export const OrderEntryView: React.FC = () => {
         await ApexDB.put('customers', updatedCustomer);
       }
 
-      // 4. Send Instant SMS Notification to Company Owner Mobile No.!
       await SmsNotifier.sendOrderConfirmationSms(newOrder, lowStockAlerts);
 
-      // 5. Add Audit Log
       await ApexDB.addAuditLog({
         actorId: currentUser.id,
         actorName: currentUser.name,
         actorRole: currentUser.role,
         action: 'ORDER_DISPATCH',
         targetEntity: orderNumber,
-        details: `Order created for ${selectedCustomer.name} (${selectedCustomer.company}). Total: $${grandTotal.toFixed(2)}. Owner SMS dispatched.`
+        details: `Order created for ${selectedCustomer.name} (${selectedCustomer.company}) [${selectedCustomer.location}]. Total: $${grandTotal.toFixed(2)}. Owner SMS dispatched.`
       });
 
-      // 6. Trigger background Firebase sync
       FirebaseSync.triggerSync().catch(() => {});
 
-      // 7. Confetti celebration
       try {
         confetti({
           particleCount: 80,
@@ -278,7 +293,6 @@ export const OrderEntryView: React.FC = () => {
     }
   };
 
-  // Filter products
   const filteredProducts = products.filter((p) => {
     const matchesCategory = selectedCategory === 'all' || p.categoryId === selectedCategory;
     const matchesSearch =
@@ -289,18 +303,18 @@ export const OrderEntryView: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-      {/* Mobile-first Header / Welcome */}
+      {/* Mobile-first Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 pb-4 border-b border-slate-200 dark:border-slate-800">
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Field Order Entry
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            Rapid catalog search, real-time pricing, instant owner SMS dispatch & offline sync.
+            Geographic customer routing, rapid product search, categories dropdown & instant owner SMS dispatch.
           </p>
         </div>
 
-        {/* Mobile Cart Floating Badge Button */}
+        {/* Mobile Cart Floating Button */}
         <button
           onClick={() => setIsMobileCartOpen(true)}
           className="lg:hidden flex items-center justify-between px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold text-xs shadow-md"
@@ -323,7 +337,8 @@ export const OrderEntryView: React.FC = () => {
                 Order Dispatched Successfully #{orderSuccess.orderNumber}
               </h3>
               <p className="text-xs text-emerald-800 dark:text-emerald-300/90 mt-1">
-                Dispatched to <span className="font-semibold">{orderSuccess.customerName}</span> · Total:{' '}
+                Client: <span className="font-semibold">{orderSuccess.customerName}</span> · Area:{' '}
+                <span className="font-semibold">{orderSuccess.customerLocation}</span> · Total:{' '}
                 <span className="font-mono font-bold">${orderSuccess.totalAmount.toFixed(2)}</span>
               </p>
               <div className="mt-2 flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400">
@@ -345,14 +360,14 @@ export const OrderEntryView: React.FC = () => {
 
       {/* Split Layout: Catalog (Left) vs Cart Panel (Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left: Product Catalog Selection (8 Cols on desktop) */}
+        {/* Left: Product Catalog Selection */}
         <div className="lg:col-span-7 xl:col-span-8 space-y-5">
-          {/* Customer Selection Card */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs">
-            <div className="flex items-center justify-between mb-3">
+          {/* Customer Selection Card with Location Routing */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
                 <User className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                Select Customer Account
+                Customer Account Selection (Location Dependent)
               </label>
               {selectedCustomer && (
                 <span className="text-[11px] font-mono text-slate-500">
@@ -361,42 +376,76 @@ export const OrderEntryView: React.FC = () => {
               )}
             </div>
 
+            {/* Geographic Location Filter & Customer Dropdown */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Step 1: Location Filter */}
               <div>
+                <label className="block text-[11px] font-semibold text-slate-500 mb-1 flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-indigo-500" />
+                  Filter by Area / Location
+                </label>
                 <select
-                  value={selectedCustomerId}
-                  onChange={(e) => setSelectedCustomerId(e.target.value)}
+                  value={selectedLocation}
+                  onChange={(e) => setSelectedLocation(e.target.value)}
                   className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
                 >
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} — {c.company}
+                  <option value="all">All Locations ({customers.length} Accounts)</option>
+                  {availableLocations.map((loc) => (
+                    <option key={loc} value={loc}>
+                      {loc} ({customers.filter((c) => c.location === loc).length} clients)
                     </option>
                   ))}
                 </select>
               </div>
 
-              {selectedCustomer && (
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 text-xs">
-                  <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">Outstanding Balance</span>
-                    <span className="font-mono font-bold text-slate-900 dark:text-slate-100 tabular-nums">
-                      ${selectedCustomer.outstandingBalance.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">Credit Limit</span>
-                    <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400 tabular-nums">
-                      ${selectedCustomer.creditLimit.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              )}
+              {/* Step 2: Customer Dropdown Dependent on Location */}
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 mb-1 flex items-center gap-1">
+                  <Building className="w-3.5 h-3.5 text-indigo-500" />
+                  Select Customer Account ({locationFilteredCustomers.length})
+                </label>
+                <select
+                  value={selectedCustomerId}
+                  onChange={(e) => setSelectedCustomerId(e.target.value)}
+                  className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                >
+                  {locationFilteredCustomers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} — {c.company} ({c.location})
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
+
+            {/* Customer Financial Profile Strip */}
+            {selectedCustomer && (
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 text-xs">
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Location Zone</span>
+                  <span className="font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    {selectedCustomer.location}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Outstanding Balance</span>
+                  <span className="font-mono font-bold text-slate-900 dark:text-slate-100 tabular-nums">
+                    ${selectedCustomer.outstandingBalance.toLocaleString()}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Credit Limit</span>
+                  <span className="font-mono font-bold text-slate-900 dark:text-slate-100 tabular-nums">
+                    ${selectedCustomer.creditLimit.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            )}
 
             {/* Credit Warnings */}
             {isCreditExceeded && (
-              <div className="mt-3 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+              <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
                 <ShieldAlert className="w-4 h-4 shrink-0 text-rose-600" />
                 <span>
                   <strong>Credit Exceeded:</strong> Order total exceeds authorized line of credit.
@@ -404,27 +453,47 @@ export const OrderEntryView: React.FC = () => {
               </div>
             )}
             {isCreditNearLimit && !isCreditExceeded && (
-              <div className="mt-3 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-300 text-xs flex items-center gap-2">
+              <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-300 text-xs flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
                 <span>Customer is approaching credit threshold (&gt;90% utilized).</span>
               </div>
             )}
           </div>
 
-          {/* Search & Category Filter Bar */}
+          {/* Search & Categories Dropdown List */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs space-y-3">
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search products by SKU (e.g. APX-BEV) or product name..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl text-xs sm:text-sm border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+              {/* Product Search */}
+              <div className="sm:col-span-7 relative">
+                <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search products by SKU or title..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 rounded-xl text-xs sm:text-sm border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+
+              {/* Category Dropdown List */}
+              <div className="sm:col-span-5 flex items-center gap-1.5">
+                <Layers className="w-4 h-4 text-slate-400 shrink-0" />
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="w-full text-xs sm:text-sm px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                >
+                  <option value="all">All Categories ({products.length} SKUs)</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name} ({products.filter((p) => p.categoryId === cat.id).length})
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            {/* Category Segmented Buttons */}
+            {/* Category Quick Pills */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
               <button
                 onClick={() => setSelectedCategory('all')}
@@ -434,7 +503,7 @@ export const OrderEntryView: React.FC = () => {
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                 }`}
               >
-                All Categories ({products.length})
+                All ({products.length})
               </button>
               {categories.map((cat) => (
                 <button
@@ -469,7 +538,6 @@ export const OrderEntryView: React.FC = () => {
                   }`}
                 >
                   <div>
-                    {/* Top row: SKU and stock badge */}
                     <div className="flex items-center justify-between text-xs mb-2">
                       <span className="font-mono text-[11px] font-semibold text-slate-400 dark:text-slate-500">
                         {product.sku}
@@ -536,7 +604,7 @@ export const OrderEntryView: React.FC = () => {
           </div>
         </div>
 
-        {/* Right: Cart Summary Panel (Desktop + Mobile Drawer) */}
+        {/* Right: Cart Summary Panel */}
         <div
           className={`lg:col-span-5 xl:col-span-4 fixed lg:sticky lg:top-20 inset-0 z-50 lg:z-auto bg-slate-900/60 lg:bg-transparent backdrop-blur-xs lg:backdrop-blur-none transition-opacity ${
             isMobileCartOpen ? 'flex justify-end' : 'hidden lg:block'
@@ -548,7 +616,6 @@ export const OrderEntryView: React.FC = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div>
-              {/* Cart Header */}
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-2">
                   <ShoppingCart className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
@@ -567,7 +634,6 @@ export const OrderEntryView: React.FC = () => {
                 )}
               </div>
 
-              {/* Cart Items List */}
               <div className="py-3 space-y-2.5 max-h-64 overflow-y-auto pr-1">
                 {cart.length === 0 ? (
                   <div className="py-8 text-center text-slate-400">
@@ -605,7 +671,6 @@ export const OrderEntryView: React.FC = () => {
                 )}
               </div>
 
-              {/* Payment & Terms Selector */}
               <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
                 <div className="grid grid-cols-3 gap-1.5 text-xs">
                   {(['Credit', 'Cash', 'Bank Transfer'] as const).map((method) => (
@@ -624,7 +689,6 @@ export const OrderEntryView: React.FC = () => {
                   ))}
                 </div>
 
-                {/* Discount Percentage slider / input */}
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-500 font-medium">Wholesale Discount:</span>
                   <div className="flex items-center gap-1.5">
@@ -645,7 +709,6 @@ export const OrderEntryView: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Dispatch Notes */}
                 <input
                   type="text"
                   placeholder="Delivery dock instructions or PO notes..."
@@ -655,7 +718,6 @@ export const OrderEntryView: React.FC = () => {
                 />
               </div>
 
-              {/* Financial Breakdown */}
               <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-1.5 text-xs">
                 <div className="flex justify-between text-slate-500">
                   <span>Subtotal:</span>
@@ -680,7 +742,6 @@ export const OrderEntryView: React.FC = () => {
               </div>
             </div>
 
-            {/* Submit Action Button */}
             <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800">
               <button
                 onClick={handleSubmitOrder}

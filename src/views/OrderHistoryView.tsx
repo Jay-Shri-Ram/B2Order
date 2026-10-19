@@ -12,12 +12,19 @@ import {
   FileText,
   Printer,
   X,
-  AlertCircle
+  AlertCircle,
+  Share2,
+  MessageCircle,
+  Mail,
+  Download,
+  Table,
+  MapPin
 } from 'lucide-react';
 import { Order, OrderStatus, DeletedOrder } from '../types';
 import { ApexDB } from '../db/indexedDb';
 import { useAuth } from '../context/AuthContext';
 import { FirebaseSync } from '../services/firebaseSync';
+import { exportOrdersToCsv, exportOrdersToExcel, shareOrderViaWhatsApp, shareOrderViaEmail } from '../services/exportService';
 
 export const OrderHistoryView: React.FC = () => {
   const { currentUser, isAdmin } = useAuth();
@@ -141,6 +148,7 @@ export const OrderHistoryView: React.FC = () => {
       o.orderNumber.toLowerCase().includes(search.toLowerCase()) ||
       o.customerName.toLowerCase().includes(search.toLowerCase()) ||
       (o.customerCompany && o.customerCompany.toLowerCase().includes(search.toLowerCase())) ||
+      (o.customerLocation && o.customerLocation.toLowerCase().includes(search.toLowerCase())) ||
       o.salesmanName.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'all' || o.status === statusFilter;
     return matchesSearch && matchesStatus;
@@ -155,13 +163,28 @@ export const OrderHistoryView: React.FC = () => {
             Order History & Fulfillment
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            Real-time fulfillment tracking, status lifecycle dispatch, and invoice generation.
+            Real-time fulfillment tracking, WhatsApp/Email order sharing, and instant invoice generation.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Export / Total Summary */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => exportOrdersToCsv(filteredOrders)}
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 shadow-xs"
+          >
+            <Download className="w-3.5 h-3.5" />
+            CSV
+          </button>
+          <button
+            onClick={() => exportOrdersToExcel(filteredOrders)}
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 shadow-xs"
+          >
+            <Table className="w-3.5 h-3.5 text-emerald-600" />
+            Excel
+          </button>
           <span className="text-xs font-mono px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 font-semibold">
-            Total Orders: {orders.length}
+            {orders.length} Total Orders
           </span>
         </div>
       </div>
@@ -172,7 +195,7 @@ export const OrderHistoryView: React.FC = () => {
           <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by order #, customer, company, or sales rep..."
+            placeholder="Search by order #, customer, area, or sales rep..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 rounded-xl text-xs sm:text-sm border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
@@ -203,13 +226,13 @@ export const OrderHistoryView: React.FC = () => {
             <thead className="bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
               <tr>
                 <th className="py-3 px-4">Order #</th>
-                <th className="py-3 px-4">Customer & Account</th>
+                <th className="py-3 px-4">Customer & Location</th>
                 <th className="py-3 px-4">Date / Time</th>
                 <th className="py-3 px-4">Sales Rep</th>
                 <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4 text-right">Items</th>
                 <th className="py-3 px-4 text-right">Total</th>
-                <th className="py-3 px-4 text-right">Actions</th>
+                <th className="py-3 px-4 text-right">Share & Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -234,7 +257,12 @@ export const OrderHistoryView: React.FC = () => {
                       </td>
                       <td className="py-3 px-4">
                         <div className="font-bold text-slate-900 dark:text-white">{order.customerName}</div>
-                        <div className="text-[11px] text-slate-400">{order.customerCompany || 'Direct Client'}</div>
+                        <div className="text-[11px] text-slate-400 flex items-center gap-1">
+                          <span>{order.customerCompany || 'Direct Client'}</span>
+                          {order.customerLocation && (
+                            <span className="text-[10px] text-indigo-500 font-medium">({order.customerLocation})</span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-4 font-mono text-slate-500 tabular-nums">
                         {new Date(order.createdAt).toLocaleDateString()} ·{' '}
@@ -257,6 +285,23 @@ export const OrderHistoryView: React.FC = () => {
                       </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {/* WhatsApp Direct Share */}
+                          <button
+                            onClick={() => shareOrderViaWhatsApp(order)}
+                            className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
+                            title="Share on WhatsApp"
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                          </button>
+                          {/* Email Share */}
+                          <button
+                            onClick={() => shareOrderViaEmail(order)}
+                            className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors"
+                            title="Share via Email"
+                          >
+                            <Mail className="w-4 h-4" />
+                          </button>
+                          {/* View Detail Modal */}
                           <button
                             onClick={() => setSelectedOrder(order)}
                             className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -264,6 +309,7 @@ export const OrderHistoryView: React.FC = () => {
                           >
                             <Eye className="w-4 h-4" />
                           </button>
+                          {/* Cancel Order */}
                           <button
                             onClick={() => setDeleteModalOrder(order)}
                             className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
@@ -295,6 +341,14 @@ export const OrderHistoryView: React.FC = () => {
                 </h3>
               </div>
               <div className="flex items-center gap-2">
+                {/* WhatsApp button */}
+                <button
+                  onClick={() => shareOrderViaWhatsApp(selectedOrder)}
+                  className="p-2 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                  title="Share on WhatsApp"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                </button>
                 <button
                   onClick={() => window.print()}
                   className="p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -321,9 +375,9 @@ export const OrderHistoryView: React.FC = () => {
                   <div className="text-slate-500">{selectedOrder.customerCompany}</div>
                 </div>
                 <div>
-                  <span className="text-slate-400 block font-semibold uppercase text-[10px]">Salesman</span>
-                  <div className="font-bold text-slate-900 dark:text-white">{selectedOrder.salesmanName}</div>
-                  <div className="text-slate-500">Field Account Rep</div>
+                  <span className="text-slate-400 block font-semibold uppercase text-[10px]">Location Area</span>
+                  <div className="font-bold text-indigo-600 dark:text-indigo-400">{selectedOrder.customerLocation || 'Standard'}</div>
+                  <div className="text-slate-500">{selectedOrder.salesmanName}</div>
                 </div>
                 <div>
                   <span className="text-slate-400 block font-semibold uppercase text-[10px]">Payment Method</span>
@@ -408,13 +462,6 @@ export const OrderHistoryView: React.FC = () => {
                   </span>
                 </div>
               </div>
-
-              {selectedOrder.notes && (
-                <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400">
-                  <span className="font-bold text-slate-900 dark:text-slate-200 block text-[11px] mb-0.5">Order Notes:</span>
-                  {selectedOrder.notes}
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -438,8 +485,8 @@ export const OrderHistoryView: React.FC = () => {
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              Deleting an order archives it to the <code className="font-mono text-indigo-600">deletedOrders</code> ledger
-              and generates an immutable audit log entry. Please provide a mandatory cancellation reason.
+              Deleting an order archives it to the <code className="font-mono text-indigo-600">deletedOrders</code> ledger.
+              Please provide a cancellation reason.
             </p>
 
             <div>

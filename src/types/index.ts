@@ -159,6 +159,7 @@ export type ViewPermissionId =
   | 'demand'
   | 'customers'
   | 'reports'
+  | 'system-activity'
   | 'sheets'
   | 'staff'
   | 'profit-analysis'
@@ -188,6 +189,7 @@ export interface AppSettings {
   rolePermissions?: RolePermissionsMap; // Dynamic module access toggles per role
   googleSpreadsheetId?: string;
   googleSpreadsheetUrl?: string;
+  territories?: string[]; // Manageable list of geographic territories/locations
 }
 
 export interface SmsMessage {

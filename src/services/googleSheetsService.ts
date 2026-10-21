@@ -248,3 +248,70 @@ export async function exportProductsToGoogleSheets(
 
   return { spreadsheetId, spreadsheetUrl };
 }
+
+/**
+ * Creates a Google Spreadsheet and exports the Customer Master List into it
+ */
+export async function exportCustomersToGoogleSheets(
+  customers: Customer[],
+  companyName: string = 'Apex Logistics ERP'
+): Promise<{ spreadsheetId: string; spreadsheetUrl: string }> {
+  let token = getGoogleAccessToken();
+  if (!token) {
+    const authResult = await signInWithGoogleSheets();
+    if (!authResult) throw new Error('Google authorization required.');
+    token = authResult.accessToken;
+  }
+
+  const dateStr = new Date().toISOString().split('T')[0];
+  const title = `${companyName} - Customer Directory (${dateStr})`;
+
+  const createRes = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      properties: { title },
+      sheets: [{ properties: { title: 'Customers' } }]
+    })
+  });
+
+  if (!createRes.ok) {
+    const errData = await createRes.json();
+    throw new Error(errData.error?.message || 'Failed to create spreadsheet');
+  }
+
+  const sheetData = await createRes.json();
+  const spreadsheetId = sheetData.spreadsheetId;
+  const spreadsheetUrl = sheetData.spreadsheetUrl;
+
+  const headers = ['Customer Code', 'Client Name', 'Company', 'Location', 'Phone', 'Email', 'Credit Limit ($)', 'Outstanding Balance ($)', 'Status'];
+  const rows = customers.map((c) => [
+    c.code,
+    c.name,
+    c.company,
+    c.location,
+    c.phone,
+    c.email,
+    c.creditLimit.toFixed(2),
+    c.outstandingBalance.toFixed(2),
+    c.active ? 'Active' : 'Inactive'
+  ]);
+
+  await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Customers!A1:I${rows.length + 1}?valueInputOption=USER_ENTERED`,
+    {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ values: [headers, ...rows] })
+    }
+  );
+
+  return { spreadsheetId, spreadsheetUrl };
+}
+

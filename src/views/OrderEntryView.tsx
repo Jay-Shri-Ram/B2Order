@@ -37,6 +37,8 @@ export const OrderEntryView: React.FC = () => {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [cart, setCart] = useState<OrderItem[]>([]);
   const [discountRate, setDiscountRate] = useState<number>(0);
+  const [applyTax, setApplyTax] = useState<boolean>(false);
+  const [customTaxRate, setCustomTaxRate] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'Credit' | 'Bank Transfer'>('Credit');
   const [orderNotes, setOrderNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -70,10 +72,11 @@ export const OrderEntryView: React.FC = () => {
   // Distinct locations from customers list
   const availableLocations = Array.from(new Set(customers.map((c) => c.location).filter(Boolean)));
 
-  // Customers filtered depending on selected location
-  const locationFilteredCustomers = customers.filter(
-    (c) => selectedLocation === 'all' || c.location === selectedLocation
-  );
+  // Customers filtered depending on selected location (support prefix / custom typed match)
+  const locationFilteredCustomers = customers.filter((c) => {
+    if (selectedLocation === 'all' || !selectedLocation.trim()) return true;
+    return c.location.toLowerCase().includes(selectedLocation.toLowerCase().trim());
+  });
 
   // If selected customer is no longer in the filtered list, pick the first one
   useEffect(() => {
@@ -158,6 +161,8 @@ export const OrderEntryView: React.FC = () => {
   const clearCart = () => {
     setCart([]);
     setDiscountRate(0);
+    setApplyTax(false);
+    setCustomTaxRate(0);
     setOrderNotes('');
   };
 
@@ -166,8 +171,8 @@ export const OrderEntryView: React.FC = () => {
   const totalCost = cart.reduce((acc, item) => acc + item.costPrice * item.quantity, 0);
   const discountAmount = (subtotal * discountRate) / 100;
   const taxableAmount = Math.max(0, subtotal - discountAmount);
-  const taxRate = 8.5;
-  const taxAmount = (taxableAmount * taxRate) / 100;
+  const taxRate = applyTax ? customTaxRate : 0;
+  const taxAmount = applyTax ? (taxableAmount * customTaxRate) / 100 : 0;
   const grandTotal = taxableAmount + taxAmount;
   const totalProfit = grandTotal - totalCost;
 
@@ -378,24 +383,40 @@ export const OrderEntryView: React.FC = () => {
 
             {/* Geographic Location Filter & Customer Dropdown */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Step 1: Location Filter */}
+              {/* Step 1: Location Filter (Select or Free-text Type) */}
               <div>
-                <label className="block text-[11px] font-semibold text-slate-500 mb-1 flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5 text-indigo-500" />
-                  Filter by Area / Location
+                <label className="block text-[11px] font-semibold text-slate-500 mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-indigo-500" />
+                    Area / Assigned Territory
+                  </span>
+                  {selectedLocation !== 'all' && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedLocation('all')}
+                      className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline"
+                    >
+                      Clear Filter
+                    </button>
+                  )}
                 </label>
-                <select
-                  value={selectedLocation}
-                  onChange={(e) => setSelectedLocation(e.target.value)}
-                  className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
-                >
-                  <option value="all">All Locations ({customers.length} Accounts)</option>
-                  {availableLocations.map((loc) => (
-                    <option key={loc} value={loc}>
-                      {loc} ({customers.filter((c) => c.location === loc).length} clients)
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <input
+                    type="text"
+                    list="territory-list"
+                    value={selectedLocation === 'all' ? '' : selectedLocation}
+                    onChange={(e) => setSelectedLocation(e.target.value || 'all')}
+                    placeholder="Type or select territory (e.g. North Zone)..."
+                    className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                  />
+                  <datalist id="territory-list">
+                    {availableLocations.map((loc) => (
+                      <option key={loc} value={loc}>
+                        {loc}
+                      </option>
+                    ))}
+                  </datalist>
+                </div>
               </div>
 
               {/* Step 2: Customer Dropdown Dependent on Location */}
@@ -409,11 +430,15 @@ export const OrderEntryView: React.FC = () => {
                   onChange={(e) => setSelectedCustomerId(e.target.value)}
                   className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
                 >
-                  {locationFilteredCustomers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} — {c.company} ({c.location})
-                    </option>
-                  ))}
+                  {locationFilteredCustomers.length === 0 ? (
+                    <option value="">No customers found in this territory</option>
+                  ) : (
+                    locationFilteredCustomers.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} — {c.company} ({c.location})
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
             </div>
@@ -709,6 +734,52 @@ export const OrderEntryView: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Optional Tax Configuration */}
+                <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100 dark:border-slate-800">
+                  <label className="flex items-center gap-1.5 cursor-pointer text-slate-700 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={applyTax}
+                      onChange={(e) => {
+                        setApplyTax(e.target.checked);
+                        if (e.target.checked && customTaxRate === 0) {
+                          setCustomTaxRate(5);
+                        }
+                      }}
+                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"
+                    />
+                    <span className="font-semibold text-[11px]">Apply Tax (Optional)</span>
+                  </label>
+                  {applyTax && (
+                    <div className="flex items-center gap-1">
+                      {[5, 12, 18].map((rate) => (
+                        <button
+                          key={rate}
+                          type="button"
+                          onClick={() => setCustomTaxRate(rate)}
+                          className={`px-1.5 py-0.5 rounded text-[10px] font-mono transition-colors ${
+                            customTaxRate === rate
+                              ? 'bg-indigo-600 text-white font-bold'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                          }`}
+                        >
+                          {rate}%
+                        </button>
+                      ))}
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.5"
+                        value={customTaxRate}
+                        onChange={(e) => setCustomTaxRate(Math.max(0, parseFloat(e.target.value) || 0))}
+                        className="w-12 text-right px-1 py-0.5 text-[11px] font-mono rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                      />
+                      <span className="text-[10px] text-slate-400">%</span>
+                    </div>
+                  )}
+                </div>
+
                 <input
                   type="text"
                   placeholder="Delivery dock instructions or PO notes..."
@@ -729,10 +800,17 @@ export const OrderEntryView: React.FC = () => {
                     <span className="font-mono tabular-nums">-${discountAmount.toFixed(2)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-slate-500">
-                  <span>Estimated Tax (8.5%):</span>
-                  <span className="font-mono tabular-nums text-slate-800 dark:text-slate-200">${taxAmount.toFixed(2)}</span>
-                </div>
+                {applyTax && taxAmount > 0 ? (
+                  <div className="flex justify-between text-slate-500">
+                    <span>Tax ({customTaxRate}%):</span>
+                    <span className="font-mono tabular-nums text-slate-800 dark:text-slate-200">${taxAmount.toFixed(2)}</span>
+                  </div>
+                ) : (
+                  <div className="flex justify-between text-slate-400 text-[11px]">
+                    <span>Tax:</span>
+                    <span className="font-mono text-slate-500">No Tax Applied ($0.00)</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-800">
                   <span className="text-sm font-bold text-slate-900 dark:text-white">Total Payable:</span>
                   <span className="text-lg font-black text-indigo-600 dark:text-indigo-400 font-mono tabular-nums">

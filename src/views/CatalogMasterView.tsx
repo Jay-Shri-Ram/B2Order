@@ -40,6 +40,17 @@ export const CatalogMasterView: React.FC = () => {
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
+  // Category Modal State
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [catForm, setCatForm] = useState({ name: '', code: '' });
+
+  // Unit Modal State
+  const [unitModalOpen, setUnitModalOpen] = useState(false);
+  const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
+  const [unitForm, setUnitForm] = useState({ name: '', shortCode: '', multiplier: 1 });
+
+
   // Product Form State
   const [prodForm, setProdForm] = useState({
     sku: '',
@@ -164,8 +175,122 @@ export const CatalogMasterView: React.FC = () => {
     await loadAll();
   };
 
+  // Category CRUD Handlers
+  const openAddCategory = () => {
+    setEditingCategory(null);
+    setCatForm({ name: '', code: '' });
+    setCategoryModalOpen(true);
+  };
+
+  const openEditCategory = (c: Category) => {
+    setEditingCategory(c);
+    setCatForm({ name: c.name, code: c.code });
+    setCategoryModalOpen(true);
+  };
+
+  const handleSaveCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!catForm.name.trim()) {
+      alert('Category Name is required.');
+      return;
+    }
+    const catId = editingCategory ? editingCategory.id : `cat-${Date.now()}`;
+    const code = catForm.code.trim() || catForm.name.slice(0, 3).toUpperCase();
+    const updatedCategory: Category = {
+      id: catId,
+      name: catForm.name.trim(),
+      code
+    };
+    await ApexDB.put('categories', updatedCategory);
+    await ApexDB.addAuditLog({
+      actorId: currentUser.id,
+      actorName: currentUser.name,
+      actorRole: currentUser.role,
+      action: editingCategory ? 'CATEGORY_UPDATE' : 'CATEGORY_CREATE',
+      targetEntity: updatedCategory.name,
+      details: `${editingCategory ? 'Updated' : 'Created'} product category "${updatedCategory.name}" (${updatedCategory.code})`
+    });
+    setCategoryModalOpen(false);
+    await loadAll();
+  };
+
+  const handleDeleteCategory = async (c: Category) => {
+    const productsInCat = products.filter((p) => p.categoryId === c.id);
+    if (productsInCat.length > 0) {
+      if (!confirm(`Warning: ${productsInCat.length} products are assigned to category "${c.name}". Deleting it will keep products, but leave them uncategorized. Proceed?`)) {
+        return;
+      }
+    } else {
+      if (!confirm(`Are you sure you want to delete category "${c.name}"?`)) return;
+    }
+    await ApexDB.delete('categories', c.id);
+    await ApexDB.addAuditLog({
+      actorId: currentUser.id,
+      actorName: currentUser.name,
+      actorRole: currentUser.role,
+      action: 'CATEGORY_DELETE',
+      targetEntity: c.name,
+      details: `Deleted product category "${c.name}" (${c.code})`
+    });
+    await loadAll();
+  };
+
+  // Unit CRUD Handlers
+  const openAddUnit = () => {
+    setEditingUnit(null);
+    setUnitForm({ name: '', shortCode: '', multiplier: 1 });
+    setUnitModalOpen(true);
+  };
+
+  const openEditUnit = (u: Unit) => {
+    setEditingUnit(u);
+    setUnitForm({ name: u.name, shortCode: u.shortCode, multiplier: u.multiplier || 1 });
+    setUnitModalOpen(true);
+  };
+
+  const handleSaveUnit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!unitForm.name.trim() || !unitForm.shortCode.trim()) {
+      alert('Unit Name and Short Code are required.');
+      return;
+    }
+    const unitId = editingUnit ? editingUnit.id : `unit-${Date.now()}`;
+    const updatedUnit: Unit = {
+      id: unitId,
+      name: unitForm.name.trim(),
+      shortCode: unitForm.shortCode.trim().toUpperCase(),
+      multiplier: Number(unitForm.multiplier) || 1
+    };
+    await ApexDB.put('units', updatedUnit);
+    await ApexDB.addAuditLog({
+      actorId: currentUser.id,
+      actorName: currentUser.name,
+      actorRole: currentUser.role,
+      action: editingUnit ? 'UNIT_UPDATE' : 'UNIT_CREATE',
+      targetEntity: updatedUnit.name,
+      details: `${editingUnit ? 'Updated' : 'Created'} packaging unit "${updatedUnit.name}" (${updatedUnit.shortCode})`
+    });
+    setUnitModalOpen(false);
+    await loadAll();
+  };
+
+  const handleDeleteUnit = async (u: Unit) => {
+    if (!confirm(`Are you sure you want to delete unit "${u.name}" (${u.shortCode})?`)) return;
+    await ApexDB.delete('units', u.id);
+    await ApexDB.addAuditLog({
+      actorId: currentUser.id,
+      actorName: currentUser.name,
+      actorRole: currentUser.role,
+      action: 'UNIT_DELETE',
+      targetEntity: u.name,
+      details: `Deleted packaging unit "${u.name}" (${u.shortCode})`
+    });
+    await loadAll();
+  };
+
   // CSV Import for Products
   const handleProductImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -484,84 +609,130 @@ export const CatalogMasterView: React.FC = () => {
         </div>
       )}
 
-      {/* Tab 2: Categories */}
+      {/* Tab 2: Categories Master */}
       {activeTab === 'categories' && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-5 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
             <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Active Product Categories</h3>
-              <p className="text-[11px] text-slate-400">Manage categories and bulk import via CSV</p>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <Layers className="w-4 h-4 text-indigo-500" />
+                Active Product Categories ({categories.length})
+              </h3>
+              <p className="text-[11px] text-slate-400">Add, edit, or delete catalog categories and groupings</p>
             </div>
             <button
-              onClick={() => {
-                const name = prompt('Enter new category name:');
-                if (name) {
-                  const code = name.slice(0, 3).toUpperCase();
-                  ApexDB.put('categories', { id: `cat-${Date.now()}`, name, code });
-                  loadAll();
-                }
-              }}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700"
+              onClick={openAddCategory}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 flex items-center gap-1.5 shadow-xs transition-colors self-start sm:self-auto"
             >
-              + Add Category
+              <Plus className="w-4 h-4" />
+              <span>+ Add Category</span>
             </button>
           </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {categories.map((c) => (
-              <div
-                key={c.id}
-                className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex items-center justify-between"
-              >
-                <div>
-                  <div className="font-bold text-xs text-slate-900 dark:text-white">{c.name}</div>
-                  <div className="text-[10px] font-mono text-slate-400">Code: {c.code}</div>
+            {categories.map((c) => {
+              const productCount = products.filter((p) => p.categoryId === c.id).length;
+              return (
+                <div
+                  key={c.id}
+                  className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white/70 dark:bg-slate-950/70 hover:border-indigo-400/60 dark:hover:border-indigo-500/50 shadow-xs transition-all flex flex-col justify-between gap-3"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="font-bold text-xs text-slate-900 dark:text-white">{c.name}</div>
+                      <div className="text-[10px] font-mono text-slate-400 mt-0.5">Code: {c.code}</div>
+                    </div>
+                    <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                      {productCount} items
+                    </span>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-end gap-1.5">
+                    <button
+                      onClick={() => openEditCategory(c)}
+                      className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-colors"
+                      title="Edit Category"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteCategory(c)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                      title="Delete Category"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
-                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                  {products.filter((p) => p.categoryId === c.id).length} products
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* Tab 3: Units */}
+      {/* Tab 3: Units Master */}
       {activeTab === 'units' && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Packaging Units & Multipliers</h3>
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-5 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <Box className="w-4 h-4 text-indigo-500" />
+                Packaging Units & Quantity Multipliers ({units.length})
+              </h3>
+              <p className="text-[11px] text-slate-400">Configure measurement units, boxes, cases, and pack multipliers</p>
+            </div>
             <button
-              onClick={() => {
-                const name = prompt('Enter unit name:');
-                const shortCode = prompt('Enter short code:') || 'UNIT';
-                if (name) {
-                  ApexDB.put('units', { id: `unit-${Date.now()}`, name, shortCode, multiplier: 1 });
-                  loadAll();
-                }
-              }}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700"
+              onClick={openAddUnit}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 flex items-center gap-1.5 shadow-xs transition-colors self-start sm:self-auto"
             >
-              + Add Unit
+              <Plus className="w-4 h-4" />
+              <span>+ Add Unit</span>
             </button>
           </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {units.map((u) => (
-              <div
-                key={u.id}
-                className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex items-center justify-between"
-              >
-                <div>
-                  <div className="font-bold text-xs text-slate-900 dark:text-white">{u.name}</div>
-                  <div className="text-[10px] font-mono text-slate-400">Code: {u.shortCode}</div>
+            {units.map((u) => {
+              const productCount = products.filter((p) => p.unitId === u.id).length;
+              return (
+                <div
+                  key={u.id}
+                  className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white/70 dark:bg-slate-950/70 hover:border-indigo-400/60 dark:hover:border-indigo-500/50 shadow-xs transition-all flex flex-col justify-between gap-3"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="font-bold text-xs text-slate-900 dark:text-white">{u.name}</div>
+                      <div className="text-[10px] font-mono text-slate-400 mt-0.5">
+                        Code: {u.shortCode} · Mult: {u.multiplier || 1}x
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                      {productCount} items
+                    </span>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-end gap-1.5">
+                    <button
+                      onClick={() => openEditUnit(u)}
+                      className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-colors"
+                      title="Edit Unit"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteUnit(u)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                      title="Delete Unit"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
-                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                  {products.filter((p) => p.unitId === u.id).length} items
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
+
 
       {/* Add / Edit Product Modal */}
       {productModalOpen && (
@@ -715,6 +886,162 @@ export const CatalogMasterView: React.FC = () => {
           </form>
         </div>
       )}
+
+      {/* Add / Edit Category Modal */}
+      {categoryModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <form
+            onSubmit={handleSaveCategory}
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-150 space-y-4"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                <Layers className="w-5 h-5 text-indigo-500" />
+                <span>{editingCategory ? 'Edit Product Category' : 'Create New Category'}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setCategoryModalOpen(false)}
+                className="p-1 rounded text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Category Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Organic Dairy & Cheese"
+                  value={catForm.name}
+                  onChange={(e) => setCatForm({ ...catForm, name: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Category Short Code
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. DRY or BEV (Optional)"
+                  value={catForm.code}
+                  onChange={(e) => setCatForm({ ...catForm, code: e.target.value.toUpperCase() })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-mono text-slate-900 dark:text-slate-100"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setCategoryModalOpen(false)}
+                className="px-4 py-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
+                {editingCategory ? 'Update Category' : 'Save Category'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Add / Edit Unit Modal */}
+      {unitModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <form
+            onSubmit={handleSaveUnit}
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-150 space-y-4"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                <Box className="w-5 h-5 text-indigo-500" />
+                <span>{editingUnit ? 'Edit Packaging Unit' : 'Create Packaging Unit'}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setUnitModalOpen(false)}
+                className="p-1 rounded text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Unit Name / Description *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Master Case (48 units)"
+                  value={unitForm.name}
+                  onChange={(e) => setUnitForm({ ...unitForm, name: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-medium"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Short Code *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. CSE or BOX"
+                    value={unitForm.shortCode}
+                    onChange={(e) => setUnitForm({ ...unitForm, shortCode: e.target.value.toUpperCase() })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-mono text-slate-900 dark:text-slate-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Unit Multiplier
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={unitForm.multiplier}
+                    onChange={(e) => setUnitForm({ ...unitForm, multiplier: parseInt(e.target.value) || 1 })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-mono text-slate-900 dark:text-slate-100"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setUnitModalOpen(false)}
+                className="px-4 py-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
+                {editingUnit ? 'Update Unit' : 'Save Unit'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
+
   );
 };

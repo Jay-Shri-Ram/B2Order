@@ -16,7 +16,11 @@ import {
   ExternalLink,
   Wifi,
   WifiOff,
-  Server
+  Server,
+  MapPin,
+  Plus,
+  Trash2,
+  Edit2
 } from 'lucide-react';
 import { AppSettings, FirebaseConfig, AuditLog } from '../types';
 import { ApexDB } from '../db/indexedDb';
@@ -33,6 +37,11 @@ export const AdminSecurityView: React.FC = () => {
   const [isTestingFirebase, setIsTestingFirebase] = useState(false);
   const [firebaseTestResult, setFirebaseTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [saveSuccessNotice, setSaveSuccessNotice] = useState(false);
+
+  // Geographic Territory / Location Manager State
+  const [newTerritoryName, setNewTerritoryName] = useState('');
+  const [editingTerritoryIndex, setEditingTerritoryIndex] = useState<number | null>(null);
+  const [editingTerritoryValue, setEditingTerritoryValue] = useState('');
 
   // Firebase Config Form
   const [fbForm, setFbForm] = useState<FirebaseConfig>({
@@ -216,6 +225,77 @@ export const AdminSecurityView: React.FC = () => {
     }
   };
 
+  // Territory Management Handlers
+  const handleAddTerritory = async () => {
+    if (!newTerritoryName.trim() || !settings) return;
+    const name = newTerritoryName.trim();
+    const currentList = settings.territories || [];
+    if (currentList.some((t) => t.toLowerCase() === name.toLowerCase())) {
+      alert('Territory already exists in the master list.');
+      return;
+    }
+    const updated = [...currentList, name];
+    const newSettings = { ...settings, territories: updated };
+    await ApexDB.saveSettings(newSettings);
+    setSettings(newSettings);
+    setNewTerritoryName('');
+    await ApexDB.addAuditLog({
+      actorId: currentUser.id,
+      actorName: currentUser.name,
+      actorRole: currentUser.role,
+      action: 'TERRITORY_ADD',
+      targetEntity: name,
+      details: `Added new geographic territory route: ${name}`
+    });
+    setSaveSuccessNotice(true);
+    setTimeout(() => setSaveSuccessNotice(false), 3000);
+  };
+
+  const handleUpdateTerritory = async (index: number) => {
+    if (!editingTerritoryValue.trim() || !settings) return;
+    const currentList = settings.territories || [];
+    const oldName = currentList[index];
+    const newName = editingTerritoryValue.trim();
+    const updated = [...currentList];
+    updated[index] = newName;
+    const newSettings = { ...settings, territories: updated };
+    await ApexDB.saveSettings(newSettings);
+    setSettings(newSettings);
+    setEditingTerritoryIndex(null);
+    setEditingTerritoryValue('');
+    await ApexDB.addAuditLog({
+      actorId: currentUser.id,
+      actorName: currentUser.name,
+      actorRole: currentUser.role,
+      action: 'TERRITORY_UPDATE',
+      targetEntity: newName,
+      details: `Renamed geographic territory from "${oldName}" to "${newName}"`
+    });
+    setSaveSuccessNotice(true);
+    setTimeout(() => setSaveSuccessNotice(false), 3000);
+  };
+
+  const handleDeleteTerritory = async (index: number) => {
+    if (!settings) return;
+    const currentList = settings.territories || [];
+    const deleted = currentList[index];
+    if (!confirm(`Delete territory route "${deleted}"?`)) return;
+    const updated = currentList.filter((_, i) => i !== index);
+    const newSettings = { ...settings, territories: updated };
+    await ApexDB.saveSettings(newSettings);
+    setSettings(newSettings);
+    await ApexDB.addAuditLog({
+      actorId: currentUser.id,
+      actorName: currentUser.name,
+      actorRole: currentUser.role,
+      action: 'TERRITORY_DELETE',
+      targetEntity: deleted,
+      details: `Removed geographic territory route: ${deleted}`
+    });
+    setSaveSuccessNotice(true);
+    setTimeout(() => setSaveSuccessNotice(false), 3000);
+  };
+
   const filteredLogs = auditLogs.filter((l) => {
     const s = auditSearch.toLowerCase();
     return (
@@ -258,9 +338,201 @@ export const AdminSecurityView: React.FC = () => {
       {saveSuccessNotice && (
         <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2 animate-in fade-in duration-150">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>System configuration and owner SMS recipient updated successfully.</span>
+          <span>System configuration, permissions, and security parameters updated successfully.</span>
         </div>
       )}
+
+      {/* 6-Word/Char Master Admin Password & Live Role Access Control (RBAC) Matrix */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* 6-Word Master Password Card */}
+        <div className="lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-4">
+          <div className="flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold">
+              <Shield className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                Admin Master Password (6-Words / Chars)
+              </h2>
+              <p className="text-[11px] text-slate-400">Required for Admin login and security settings</p>
+            </div>
+          </div>
+
+          <div className="space-y-3 text-xs">
+            <div>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Current Master Password
+              </label>
+              <div className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 font-mono font-bold text-slate-900 dark:text-white flex items-center justify-between">
+                <span>{settings?.adminPassword || 'APEX99'}</span>
+                <span className="text-[10px] text-slate-400 font-sans">Active PIN</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Update Master Admin Password (Min. 6 words/chars)
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="e.g. APEX99 or master key"
+                  id="new-admin-password-input"
+                  className="flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-mono font-bold text-slate-900 dark:text-slate-100"
+                />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const input = document.getElementById('new-admin-password-input') as HTMLInputElement;
+                    if (!input || !input.value.trim()) {
+                      alert('Please enter a new password.');
+                      return;
+                    }
+                    if (input.value.trim().length < 6) {
+                      alert('Admin Master Password must be at least 6 characters or words.');
+                      return;
+                    }
+                    if (!settings) return;
+                    const updated = { ...settings, adminPassword: input.value.trim() };
+                    await ApexDB.saveSettings(updated);
+                    setSettings(updated);
+                    await ApexDB.addAuditLog({
+                      actorId: currentUser.id,
+                      actorName: currentUser.name,
+                      actorRole: currentUser.role,
+                      action: 'ADMIN_PASSWORD_UPDATED',
+                      targetEntity: 'AdminConsoleSecurity',
+                      details: 'Master Admin 6-word password was updated.'
+                    });
+                    input.value = '';
+                    setSaveSuccessNotice(true);
+                    setTimeout(() => setSaveSuccessNotice(false), 3000);
+                  }}
+                  className="px-3.5 py-2 rounded-xl font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors shadow-xs"
+                >
+                  Save Key
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">
+                This password protects the Admin Console and Administrator registration.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Live Role-Based Access Control (RBAC) Matrix */}
+        <div className="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
+                <Settings className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Dynamic Role-Based Access Control (RBAC)
+                </h2>
+                <p className="text-[11px] text-slate-400">
+                  Enable or disable module access per role. Changes apply in real-time.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase">
+                <tr>
+                  <th className="py-2.5 px-3">Module / View</th>
+                  <th className="py-2.5 px-3 text-center text-indigo-600 dark:text-indigo-400">Salesman</th>
+                  <th className="py-2.5 px-3 text-center text-amber-600 dark:text-amber-400">Manager</th>
+                  <th className="py-2.5 px-3 text-center text-rose-600 dark:text-rose-400">Admin</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                {[
+                  { id: 'order-entry', name: 'Order Entry (Cart & POS)' },
+                  { id: 'order-history', name: 'Order History & Invoices' },
+                  { id: 'catalog', name: 'Catalog Master & Items' },
+                  { id: 'demand', name: 'Product Demand & Receiving' },
+                  { id: 'customers', name: 'Customer Master & Credit' },
+                  { id: 'reports', name: 'Reporting Engine (PDF/CSV/Excel)' },
+                  { id: 'staff', name: 'Staff Management Console' },
+                  { id: 'profit-analysis', name: 'Profit & Cost Analysis' },
+                  { id: 'security', name: 'Admin Security & Cloud Sync' }
+                ].map((mod) => {
+                  const rolePerms = settings?.rolePermissions || {
+                    salesman: { 'order-entry': true, 'order-history': false, catalog: false, demand: false, customers: false, reports: false, sheets: false, staff: false, 'profit-analysis': false, security: false },
+                    manager: { 'order-entry': true, 'order-history': true, catalog: true, demand: true, customers: true, reports: true, sheets: true, staff: false, 'profit-analysis': false, security: false },
+                    admin: { 'order-entry': true, 'order-history': true, catalog: true, demand: true, customers: true, reports: true, sheets: true, staff: true, 'profit-analysis': true, security: true }
+                  };
+
+                  const isChecked = (role: 'salesman' | 'manager' | 'admin') => {
+                    return (rolePerms as any)?.[role]?.[mod.id] ?? (role === 'admin' ? true : false);
+                  };
+
+                  const togglePerm = async (role: 'salesman' | 'manager' | 'admin') => {
+                    if (!settings) return;
+                    const current = isChecked(role);
+                    const updatedPerms = {
+                      ...rolePerms,
+                      [role]: {
+                        ...(rolePerms as any)[role],
+                        [mod.id]: !current
+                      }
+                    };
+                    const updatedSettings = {
+                      ...settings,
+                      rolePermissions: updatedPerms as any
+                    };
+                    await ApexDB.saveSettings(updatedSettings);
+                    setSettings(updatedSettings);
+                    await ApexDB.addAuditLog({
+                      actorId: currentUser.id,
+                      actorName: currentUser.name,
+                      actorRole: currentUser.role,
+                      action: 'RBAC_PERMISSION_TOGGLE',
+                      targetEntity: `${role.toUpperCase()}.${mod.id}`,
+                      details: `Toggled access to ${mod.name} for ${role.toUpperCase()} to ${!current ? 'ENABLED' : 'DISABLED'}`
+                    });
+                  };
+
+                  return (
+                    <tr key={mod.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                      <td className="py-2.5 px-3 font-semibold text-slate-800 dark:text-slate-200">
+                        {mod.name}
+                      </td>
+                      <td className="py-2.5 px-3 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isChecked('salesman')}
+                          onChange={() => togglePerm('salesman')}
+                          className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                        />
+                      </td>
+                      <td className="py-2.5 px-3 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isChecked('manager')}
+                          onChange={() => togglePerm('manager')}
+                          className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
+                        />
+                      </td>
+                      <td className="py-2.5 px-3 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isChecked('admin')}
+                          onChange={() => togglePerm('admin')}
+                          className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 cursor-pointer"
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
 
       {/* Grid: Firebase Credential Manager (Left) & Company/SMS Setup (Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -468,6 +740,116 @@ export const AdminSecurityView: React.FC = () => {
               </button>
             </div>
           </form>
+        </div>
+      </div>
+
+      {/* Geographic Territories & Delivery Routes Master Manager */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
+              <MapPin className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                Assigned Geographic Territories & Delivery Routes
+              </h2>
+              <p className="text-[11px] text-slate-400">
+                Add, edit, or delete delivery zones available across Customer Master and Order Entry
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-mono font-semibold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+            {(settings?.territories || []).length} Active Zones
+          </span>
+        </div>
+
+        {/* Add Territory Input */}
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Enter new geographic territory or route name (e.g. Uptown Plaza, West District)..."
+            value={newTerritoryName}
+            onChange={(e) => setNewTerritoryName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleAddTerritory();
+              }
+            }}
+            className="flex-1 text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+          />
+          <button
+            type="button"
+            onClick={handleAddTerritory}
+            disabled={!newTerritoryName.trim()}
+            className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed shadow-xs flex items-center gap-1.5 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add Territory
+          </button>
+        </div>
+
+        {/* Territory List Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 pt-1">
+          {(settings?.territories || []).map((terr, idx) => (
+            <div
+              key={idx}
+              className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/40 flex items-center justify-between gap-2"
+            >
+              {editingTerritoryIndex === idx ? (
+                <div className="flex items-center gap-1.5 flex-1">
+                  <input
+                    type="text"
+                    value={editingTerritoryValue}
+                    onChange={(e) => setEditingTerritoryValue(e.target.value)}
+                    className="flex-1 text-xs px-2 py-1 rounded-lg border border-indigo-400 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-semibold"
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => handleUpdateTerritory(idx)}
+                    className="p-1 rounded bg-indigo-600 text-white text-[10px] font-bold"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setEditingTerritoryIndex(null)}
+                    className="p-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 text-[10px]"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 truncate">
+                    <MapPin className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                      {terr}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => {
+                        setEditingTerritoryIndex(idx);
+                        setEditingTerritoryValue(terr);
+                      }}
+                      className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      title="Edit territory"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTerritory(idx)}
+                      className="p-1 rounded text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                      title="Delete territory"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
         </div>
       </div>
 

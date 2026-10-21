@@ -17,14 +17,18 @@ import { CustomerMasterView } from './views/CustomerMasterView';
 import { StaffManagementView } from './views/StaffManagementView';
 import { ProfitAnalysisView } from './views/ProfitAnalysisView';
 import { AdminSecurityView } from './views/AdminSecurityView';
+import { ReportingEngineView } from './views/ReportingEngineView';
+import { SystemActivityView } from './views/SystemActivityView';
+import { LoginView } from './views/LoginView';
 import { SmsMessage } from './types';
 import { Smartphone, CheckCircle, ShieldAlert } from 'lucide-react';
 
 const AppContent: React.FC = () => {
-  const { currentUser, canAccess } = useAuth();
+  const { currentUser, canAccess, isAuthenticated } = useAuth();
   const [currentView, setCurrentView] = useState<string>('order-entry');
   const [smsDrawerOpen, setSmsDrawerOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ title: string; body: string; type?: string } | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
 
   // Guard routing if user switches role
   useEffect(() => {
@@ -65,35 +69,74 @@ const AppContent: React.FC = () => {
     }
   };
 
+  // If user signed out, display Login & Sign-up page
+  if (!isAuthenticated || showAuthModal) {
+    return (
+      <LoginView
+        onLoginSuccess={() => {
+          setShowAuthModal(false);
+          setCurrentView('order-entry');
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-200">
+      {/* Vertical Navigation Bar on Desktop / Mobile Drawer */}
       <Navbar
         currentView={currentView}
         onNavigate={handleNavigate}
         onOpenSmsDrawer={() => setSmsDrawerOpen(true)}
+        onLogout={() => setShowAuthModal(true)}
       />
 
-      {/* Main View Area with Framer Motion Transition */}
-      <main className="flex-1 pb-16">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentView}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
-          >
-            {currentView === 'order-entry' && <OrderEntryView />}
-            {currentView === 'order-history' && <OrderHistoryView />}
-            {currentView === 'catalog' && <CatalogMasterView />}
-            {currentView === 'demand' && <ProductSummaryView />}
-            {currentView === 'customers' && <CustomerMasterView />}
-            {currentView === 'staff' && <StaffManagementView />}
-            {currentView === 'profit-analysis' && <ProfitAnalysisView />}
-            {currentView === 'security' && <AdminSecurityView />}
-          </motion.div>
-        </AnimatePresence>
-      </main>
+      {/* Main View Area (offset by 64px/256px on desktop for vertical sidebar) */}
+      <div className="flex-1 flex flex-col lg:pl-64">
+        <main className="flex-1 pb-16">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentView}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+            >
+              {currentView === 'order-entry' && <OrderEntryView />}
+              {currentView === 'order-history' && <OrderHistoryView />}
+              {currentView === 'catalog' && <CatalogMasterView />}
+              {currentView === 'demand' && <ProductSummaryView />}
+              {currentView === 'customers' && <CustomerMasterView />}
+              {currentView === 'reports' && <ReportingEngineView />}
+              {currentView === 'system-activity' && <SystemActivityView />}
+              {currentView === 'staff' && <StaffManagementView />}
+              {currentView === 'profit-analysis' && <ProfitAnalysisView />}
+              {currentView === 'security' && <AdminSecurityView />}
+            </motion.div>
+          </AnimatePresence>
+        </main>
+
+        {/* Quiet Corporate Footer */}
+        <footer className="border-t border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 py-4 px-6 text-center text-xs text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-slate-700 dark:text-slate-300">Apex B2B Order Hub</span>
+            <span>·</span>
+            <span>Offline-First Enterprise ERP</span>
+          </div>
+          <div className="flex items-center gap-3 text-[11px] font-mono">
+            <span>
+              Active Role: <strong className="uppercase text-indigo-600 dark:text-indigo-400">{currentUser.role}</strong>
+            </span>
+            <span>·</span>
+            <button
+              onClick={() => setShowAuthModal(true)}
+              className="text-indigo-600 dark:text-indigo-400 hover:underline font-bold"
+            >
+              Switch Role / Sign In
+            </button>
+          </div>
+        </footer>
+      </div>
 
       {/* Floating System Toast */}
       {toastMessage && (
@@ -120,20 +163,6 @@ const AppContent: React.FC = () => {
 
       {/* Interactive SMS Activity & Carrier Simulation Drawer */}
       <SmsDrawer isOpen={smsDrawerOpen} onClose={() => setSmsDrawerOpen(false)} />
-
-      {/* Quiet Corporate Footer */}
-      <footer className="border-t border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 py-4 px-6 text-center text-xs text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="font-bold text-slate-700 dark:text-slate-300">Apex B2B Order Hub</span>
-          <span>·</span>
-          <span>Offline-First Enterprise ERP</span>
-        </div>
-        <div className="flex items-center gap-3 text-[11px] font-mono">
-          <span>Active Role: <strong className="uppercase text-indigo-600 dark:text-indigo-400">{currentUser.role}</strong></span>
-          <span>·</span>
-          <span>256-bit AES Backup Encrypted</span>
-        </div>
-      </footer>
     </div>
   );
 };

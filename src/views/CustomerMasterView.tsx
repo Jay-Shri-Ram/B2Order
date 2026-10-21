@@ -4,6 +4,10 @@ import {
   Search,
   Plus,
   Edit2,
+  Eye,
+  Receipt,
+  Calendar,
+  Package,
   DollarSign,
   Phone,
   Mail,
@@ -14,9 +18,11 @@ import {
   AlertTriangle,
   Download,
   Upload,
-  CheckCircle2
+  CheckCircle2,
+  Clock,
+  ShoppingBag
 } from 'lucide-react';
-import { Customer } from '../types';
+import { Customer, Order } from '../types';
 import { ApexDB } from '../db/indexedDb';
 import { useAuth } from '../context/AuthContext';
 import { FirebaseSync } from '../services/firebaseSync';
@@ -30,6 +36,11 @@ export const CustomerMasterView: React.FC = () => {
   const [customerModalOpen, setCustomerModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [importStatus, setImportStatus] = useState<string | null>(null);
+
+  // View Customer Profile & Orders History Modal
+  const [viewCustomerModalOpen, setViewCustomerModalOpen] = useState(false);
+  const [viewingCustomer, setViewingCustomer] = useState<Customer | null>(null);
+  const [viewCustomerOrders, setViewCustomerOrders] = useState<Order[]>([]);
 
   // Payment Recording Modal
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -65,6 +76,16 @@ export const CustomerMasterView: React.FC = () => {
   }, []);
 
   const availableLocations = Array.from(new Set(customers.map((c) => c.location).filter(Boolean)));
+
+  const openViewCustomer = async (cust: Customer) => {
+    setViewingCustomer(cust);
+    const allOrders = await ApexDB.getAll<Order>('orders');
+    const custOrders = allOrders
+      .filter((o) => o.customerId === cust.id || o.customerName.toLowerCase() === cust.name.toLowerCase())
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    setViewCustomerOrders(custOrders);
+    setViewCustomerModalOpen(true);
+  };
 
   const openAddCustomer = () => {
     setEditingCustomer(null);
@@ -352,6 +373,13 @@ export const CustomerMasterView: React.FC = () => {
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
+                          onClick={() => openViewCustomer(c)}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                          title="View customer profile & order history"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => {
                             setPaymentCustomer(c);
                             setPaymentAmount(Math.min(c.outstandingBalance, 500));
@@ -364,7 +392,7 @@ export const CustomerMasterView: React.FC = () => {
                         </button>
                         <button
                           onClick={() => openEditCustomer(c)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                           title="Edit details"
                         >
                           <Edit2 className="w-4 h-4" />
@@ -572,6 +600,253 @@ export const CustomerMasterView: React.FC = () => {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Customer 360° Profile & Orders History Modal */}
+      {viewCustomerModalOpen && viewingCustomer && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-start justify-between pb-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-lg">
+                  {viewingCustomer.name.slice(0, 2).toUpperCase()}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-lg text-slate-900 dark:text-white">
+                      {viewingCustomer.name}
+                    </h3>
+                    <span className="font-mono text-xs px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold">
+                      {viewingCustomer.code}
+                    </span>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        viewingCustomer.active
+                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                          : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                      }`}
+                    >
+                      {viewingCustomer.active ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-2">
+                    <span>{viewingCustomer.company}</span>
+                    <span>·</span>
+                    <span className="inline-flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-indigo-500" />
+                      {viewingCustomer.location}
+                    </span>
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setViewCustomerModalOpen(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="overflow-y-auto space-y-5 py-4 flex-1 pr-1">
+              {/* Financial & Credit Metrics Strip */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Credit Limit</span>
+                  <span className="text-base font-extrabold text-slate-900 dark:text-white font-mono tabular-nums">
+                    ${viewingCustomer.creditLimit.toLocaleString()}
+                  </span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Outstanding</span>
+                  <span
+                    className={`text-base font-extrabold font-mono tabular-nums ${
+                      viewingCustomer.outstandingBalance > viewingCustomer.creditLimit * 0.9
+                        ? 'text-amber-600 dark:text-amber-400'
+                        : 'text-slate-900 dark:text-white'
+                    }`}
+                  >
+                    ${viewingCustomer.outstandingBalance.toLocaleString()}
+                  </span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Available Credit</span>
+                  <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400 font-mono tabular-nums">
+                    ${Math.max(0, viewingCustomer.creditLimit - viewingCustomer.outstandingBalance).toLocaleString()}
+                  </span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Lifetime Orders</span>
+                  <span className="text-base font-extrabold text-indigo-600 dark:text-indigo-400 font-mono tabular-nums">
+                    {viewCustomerOrders.length} orders
+                  </span>
+                </div>
+              </div>
+
+              {/* Contact & Address Information */}
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800 text-xs grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-indigo-500 shrink-0" />
+                  <div>
+                    <span className="text-[10px] text-slate-400 block uppercase font-semibold">Phone</span>
+                    <span className="font-mono text-slate-700 dark:text-slate-300">{viewingCustomer.phone}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-indigo-500 shrink-0" />
+                  <div>
+                    <span className="text-[10px] text-slate-400 block uppercase font-semibold">Email</span>
+                    <span className="text-slate-700 dark:text-slate-300 truncate">{viewingCustomer.email}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-indigo-500 shrink-0" />
+                  <div>
+                    <span className="text-[10px] text-slate-400 block uppercase font-semibold">Address / Route</span>
+                    <span className="text-slate-700 dark:text-slate-300 truncate">{viewingCustomer.address}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Orders Segregation: New Orders (last 30 days) vs Older Orders */}
+              {(() => {
+                const now = Date.now();
+                const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+                const newOrders = viewCustomerOrders.filter(
+                  (o) => now - new Date(o.createdAt).getTime() <= thirtyDaysMs
+                );
+                const olderOrders = viewCustomerOrders.filter(
+                  (o) => now - new Date(o.createdAt).getTime() > thirtyDaysMs
+                );
+
+                return (
+                  <div className="space-y-4">
+                    {/* New Orders Section */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2.5">
+                        <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                          <ShoppingBag className="w-4 h-4 text-emerald-500" />
+                          New & Recent Orders (Last 30 Days)
+                          <span className="text-[11px] font-mono px-2 py-0.2 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+                            {newOrders.length}
+                          </span>
+                        </h4>
+                      </div>
+
+                      {newOrders.length === 0 ? (
+                        <div className="p-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-center text-xs text-slate-400">
+                          No recent orders placed in the last 30 days.
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {newOrders.map((ord) => (
+                            <div
+                              key={ord.id}
+                              className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors"
+                            >
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-mono font-bold text-xs text-indigo-600 dark:text-indigo-400">
+                                      {ord.orderNumber}
+                                    </span>
+                                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                      {ord.status}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400">
+                                      {ord.paymentMethod}
+                                    </span>
+                                  </div>
+                                  <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1">
+                                    <Clock className="w-3 h-3 text-slate-400" />
+                                    <span>{new Date(ord.createdAt).toLocaleString()}</span>
+                                    <span>·</span>
+                                    <span>Salesman: {ord.salesmanName}</span>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-xs text-slate-400 block">Total Amount</span>
+                                  <span className="text-sm font-extrabold text-slate-900 dark:text-white font-mono tabular-nums">
+                                    ${ord.totalAmount.toFixed(2)}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Items summary */}
+                              <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80 text-[11px] text-slate-500">
+                                <span className="font-semibold text-slate-700 dark:text-slate-300">Items: </span>
+                                {ord.items.map((it, idx) => (
+                                  <span key={it.productId}>
+                                    {it.name} ({it.quantity} {it.unit}){idx < ord.items.length - 1 ? ', ' : ''}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Older Orders Section */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                        <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                          <Clock className="w-4 h-4 text-slate-400" />
+                          Older & Historical Orders
+                          <span className="text-[11px] font-mono px-2 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                            {olderOrders.length}
+                          </span>
+                        </h4>
+                      </div>
+
+                      {olderOrders.length === 0 ? (
+                        <div className="p-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-center text-xs text-slate-400">
+                          No previous historical orders recorded.
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {olderOrders.map((ord) => (
+                            <div
+                              key={ord.id}
+                              className="p-3 rounded-xl border border-slate-200 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/40 text-xs flex items-center justify-between"
+                            >
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                                    {ord.orderNumber}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400">{ord.paymentMethod}</span>
+                                </div>
+                                <div className="text-[11px] text-slate-400">
+                                  {new Date(ord.createdAt).toLocaleDateString()} · {ord.items.length} line items
+                                </div>
+                              </div>
+                              <div className="text-right font-mono font-bold text-slate-800 dark:text-slate-200 tabular-nums">
+                                ${ord.totalAmount.toFixed(2)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end pt-3 border-t border-slate-100 dark:border-slate-800 shrink-0">
+              <button
+                type="button"
+                onClick={() => setViewCustomerModalOpen(false)}
+                className="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:opacity-90 transition-opacity"
+              >
+                Close Customer Profile
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

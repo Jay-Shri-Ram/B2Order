@@ -25,7 +25,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<StaffMember>(INITIAL_STAFF[0]);
   const [allStaff, setAllStaff] = useState<StaffMember[]>(INITIAL_STAFF);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true); // Default true so demo is accessible, can logout to Primary Login
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('apex_auth_session') === 'true';
+    }
+    return false;
+  });
   const [rolePermissions, setRolePermissions] = useState<RolePermissionsMap>(INITIAL_ROLE_PERMISSIONS);
   const [settings, setSettings] = useState<AppSettings | null>(null);
 
@@ -72,6 +77,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await ApexDB.put('staff', updatedTarget);
     setCurrentUser(updatedTarget);
     setIsAuthenticated(true);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('apex_auth_session', 'true');
+    }
 
     await ApexDB.addAuditLog({
       actorId: updatedTarget.id,
@@ -112,6 +120,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     await switchUser(user.id);
     setIsAuthenticated(true);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('apex_auth_session', 'true');
+    }
     return { success: true, message: `Signed in successfully as ${user.name} (${user.role.toUpperCase()})` };
   };
 
@@ -125,6 +136,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       details: `${currentUser.name} signed out.`
     });
     setIsAuthenticated(false);
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('apex_auth_session');
+    }
   };
 
   /**
@@ -141,10 +155,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Default fallbacks
     if (role === 'admin') return true;
     if (role === 'manager') {
-      return ['order-entry', 'order-history', 'catalog', 'demand', 'customers', 'reports', 'sheets'].includes(viewId);
+      return [
+        'order-entry',
+        'order-history',
+        'catalog',
+        'demand',
+        'customers',
+        'reports',
+        'system-activity',
+        'sheets'
+      ].includes(viewId);
     }
     return viewId === 'order-entry';
   };
+
 
   const updateRolePermissions = async (newPerms: RolePermissionsMap) => {
     setRolePermissions(newPerms);

@@ -432,7 +432,8 @@ export const INITIAL_ROLE_PERMISSIONS: RolePermissionsMap = {
     'sheets': true,
     'staff': true,
     'profit-analysis': true,
-    'security': true
+    'security': true,
+    'system-activity': true
   },
   manager: {
     'order-entry': true,
@@ -444,7 +445,8 @@ export const INITIAL_ROLE_PERMISSIONS: RolePermissionsMap = {
     'sheets': true,
     'staff': false,
     'profit-analysis': false,
-    'security': false
+    'security': false,
+    'system-activity': true
   },
   salesman: {
     'order-entry': true,
@@ -456,9 +458,20 @@ export const INITIAL_ROLE_PERMISSIONS: RolePermissionsMap = {
     'sheets': false,
     'staff': false,
     'profit-analysis': false,
-    'security': false
+    'security': false,
+    'system-activity': false
   }
 };
+
+export const INITIAL_TERRITORIES: string[] = [
+  'Downtown District',
+  'Financial District',
+  'Westside Industrial',
+  'Harbour Bay',
+  'North Suburbs',
+  'East Bay Corridor',
+  'Metro Commercial Zone'
+];
 
 export const INITIAL_SETTINGS: AppSettings = {
   companyName: 'Apex Logistics & B2B Order Hub',
@@ -467,14 +480,24 @@ export const INITIAL_SETTINGS: AppSettings = {
   ownerMobileNumber: '+1 (555) 948-2211',
   ownerEmail: 'aashuchauhan12042004@gmail.com',
   currency: '$',
-  taxPercentage: 8.5,
+  taxPercentage: 0, // Cut estimated tax by default, optional
   smsNotificationsEnabled: true,
   autoSyncEnabled: true,
-  isFirebaseConnected: false,
+  firebaseConfig: {
+    apiKey: 'AIzaSyDYTf49nLP5fNTp7NjsGZ2mayISdSHI3ds',
+    authDomain: 'gen-lang-client-0838880698.firebaseapp.com',
+    projectId: 'gen-lang-client-0838880698',
+    storageBucket: 'gen-lang-client-0838880698.firebasestorage.app',
+    messagingSenderId: '529817740631',
+    appId: '1:529817740631:web:4b55969795a62111ea0a12'
+  },
+  isFirebaseConnected: true,
   lastSyncTimestamp: new Date().toISOString(),
   adminPassword: 'APEX99', // 6-character master Admin password
-  rolePermissions: INITIAL_ROLE_PERMISSIONS
+  rolePermissions: INITIAL_ROLE_PERMISSIONS,
+  territories: INITIAL_TERRITORIES
 };
+
 
 export const INITIAL_AUDIT_LOGS: AuditLog[] = [
   {

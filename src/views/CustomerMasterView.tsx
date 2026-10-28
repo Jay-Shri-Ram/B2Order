@@ -251,10 +251,10 @@ export const CustomerMasterView: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#15151C] dark:text-[#E2E8F0] tracking-[-0.6px]">
             Customer Master & Geographic Accounts
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-xs sm:text-sm text-[#7C8CA5] mt-0.5">
             Wholesale accounts, location routing, credit lines, and CSV customer import.
           </p>
         </div>
@@ -262,21 +262,21 @@ export const CustomerMasterView: React.FC = () => {
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={downloadCustomerTemplate}
-            className="px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 shadow-xs"
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold border border-[#D4D4DB] dark:border-[#1E293B] bg-white dark:bg-[#111A2B] hover:bg-black/5 dark:hover:bg-[#202632] text-[#15151C] dark:text-[#E2E8F0] flex items-center gap-1.5 active:scale-[0.97] transition-all shadow-xs"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download className="w-3.5 h-3.5 text-[#7C8CA5]" />
             Customer Template
           </button>
 
-          <label className="px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 shadow-xs cursor-pointer">
-            <Upload className="w-3.5 h-3.5 text-indigo-600" />
+          <label className="px-3.5 py-2 rounded-xl text-xs font-semibold border border-[#D4D4DB] dark:border-[#1E293B] bg-white dark:bg-[#111A2B] hover:bg-black/5 dark:hover:bg-[#202632] text-[#15151C] dark:text-[#E2E8F0] flex items-center gap-1.5 active:scale-[0.97] transition-all shadow-xs cursor-pointer">
+            <Upload className="w-3.5 h-3.5 text-[#6366F1]" />
             Import Customers CSV
             <input type="file" accept=".csv" onChange={handleCustomerImport} className="hidden" />
           </label>
 
           <button
             onClick={openAddCustomer}
-            className="px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 flex items-center gap-1.5 shadow-xs transition-colors"
+            className="btn-orderflow-glow px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#6366F1] hover:brightness-105 flex items-center gap-1.5 shadow-[0_6px_18px_-6px_rgba(99,102,241,0.7)] active:scale-[0.97] transition-all"
           >
             <Plus className="w-4 h-4" />
             Add Customer
@@ -292,24 +292,24 @@ export const CustomerMasterView: React.FC = () => {
       )}
 
       {/* Search & Location Filter */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-col md:flex-row gap-3">
+      <div className="orderflow-card p-4 shadow-xs flex flex-col md:flex-row gap-3">
         <div className="relative flex-1">
-          <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+          <Search className="w-4 h-4 absolute left-3.5 top-3 text-[#7C8CA5]" />
           <input
             type="text"
             placeholder="Search by customer name, company, account code, or location..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-xl text-xs sm:text-sm border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+            className="w-full pl-10 pr-4 py-2 rounded-xl text-xs sm:text-sm border border-[#D4D4DB] dark:border-[#1E293B] bg-[#F7F7FF] dark:bg-[#070B14] text-[#15151C] dark:text-[#E2E8F0] placeholder-[#7C8CA5] focus:outline-hidden focus:border-[#6366F1] focus:ring-1 focus:ring-[#6366F1] transition-all"
           />
         </div>
 
         <div className="flex items-center gap-2 text-xs">
-          <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+          <MapPin className="w-4 h-4 text-[#7C8CA5] shrink-0" />
           <select
             value={locationFilter}
             onChange={(e) => setLocationFilter(e.target.value)}
-            className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 font-medium"
+            className="px-3.5 py-2 rounded-xl border border-[#D4D4DB] dark:border-[#1E293B] bg-[#F7F7FF] dark:bg-[#070B14] text-[#15151C] dark:text-[#E2E8F0] font-medium focus:border-[#6366F1] focus:ring-1 focus:ring-[#6366F1] focus:outline-hidden transition-all"
           >
             <option value="all">All Locations ({customers.length})</option>
             {availableLocations.map((loc) => (
@@ -322,10 +322,10 @@ export const CustomerMasterView: React.FC = () => {
       </div>
 
       {/* High Density Table */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
+      <div className="orderflow-card overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
+            <thead className="bg-[#EDEDF5] dark:bg-[#070B14] border-b border-[#D4D4DB]/70 dark:border-[#1E293B] text-[#7C8CA5] font-bold uppercase tracking-[0.98px]">
               <tr>
                 <th className="py-3 px-4">Account Code</th>
                 <th className="py-3 px-4">Customer & Company</th>

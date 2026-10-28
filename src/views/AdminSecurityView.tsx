@@ -407,25 +407,25 @@ export const AdminSecurityView: React.FC = () => {
   if (!isAdminUnlocked) {
     return (
       <div className="max-w-md mx-auto px-4 py-16 text-center animate-in fade-in duration-200">
-        <div className="glass-panel rounded-3xl p-8 border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 shadow-2xl space-y-6">
-          <div className="w-16 h-16 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center justify-center mx-auto shadow-sm">
+        <div className="orderflow-card p-8 space-y-6">
+          <div className="w-16 h-16 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 flex items-center justify-center mx-auto shadow-sm">
             <Lock className="w-8 h-8" />
           </div>
 
           <div>
-            <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-rose-500 px-2 py-0.5 rounded-full bg-rose-500/10">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-[0.98px] text-rose-500 px-2.5 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/20">
               PIN-Protected Area
             </span>
-            <h2 className="text-xl font-black text-slate-900 dark:text-white mt-2">
+            <h2 className="text-2xl font-extrabold text-[#15151C] dark:text-[#E2E8F0] tracking-[-0.6px] mt-2">
               Admin Console Security Lock
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-xs text-[#7C8CA5] mt-1">
               Enter your 4 to 6 digit Master PIN to unlock system parameters, database credentials, and audit logs.
             </p>
           </div>
 
           {pinUnlockError && (
-            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2">
+            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
               <span>{pinUnlockError}</span>
             </div>
@@ -433,7 +433,7 @@ export const AdminSecurityView: React.FC = () => {
 
           <form onSubmit={handleUnlockSubmit} className="space-y-4">
             <div className="relative">
-              <KeyRound className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
+              <KeyRound className="w-4 h-4 absolute left-3.5 top-3.5 text-[#7C8CA5]" />
               <input
                 type={showUnlockPin ? 'text' : 'password'}
                 maxLength={6}
@@ -441,33 +441,33 @@ export const AdminSecurityView: React.FC = () => {
                 placeholder="Enter 4-6 digit PIN"
                 value={enteredPin}
                 onChange={(e) => setEnteredPin(e.target.value)}
-                className="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white font-mono text-center tracking-widest text-lg font-bold focus:ring-2 focus:ring-rose-500 focus:outline-hidden"
+                className="w-full pl-10 pr-10 py-3 rounded-xl border border-[#D4D4DB] dark:border-[#1E293B] bg-[#F7F7FF] dark:bg-[#070B14] text-[#15151C] dark:text-[#E2E8F0] font-mono text-center tracking-widest text-lg font-bold focus:border-rose-500 focus:ring-1 focus:ring-rose-500 focus:outline-hidden transition-all"
               />
               <button
                 type="button"
                 onClick={() => setShowUnlockPin(!showUnlockPin)}
-                className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600"
+                className="absolute right-3.5 top-3.5 text-[#7C8CA5] hover:text-[#15151C] dark:hover:text-white"
               >
                 {showUnlockPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
 
-            <div className="text-[11px] text-slate-400 flex items-center justify-between font-mono">
+            <div className="text-[11px] text-[#7C8CA5] flex items-center justify-between font-mono">
               <span>Standard Default: 1234 or 123456</span>
-              <span className="text-indigo-500">APEX99</span>
+              <span className="text-[#6366F1]">APEX99</span>
             </div>
 
             <button
               type="submit"
               disabled={isUnlocking || !enteredPin.trim()}
-              className="w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm text-white bg-rose-600 hover:bg-rose-700 shadow-md shadow-rose-600/30 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+              className="w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm text-white bg-rose-600 hover:bg-rose-700 shadow-md shadow-rose-600/30 flex items-center justify-center gap-2 transition-all active:scale-[0.97] disabled:opacity-50"
             >
               <Unlock className="w-4 h-4" />
               <span>{isUnlocking ? 'Validating PIN...' : 'Unlock Admin Console'}</span>
             </button>
           </form>
 
-          <p className="text-[10px] text-slate-400">
+          <p className="text-[10px] text-[#7C8CA5]">
             Note: You can easily change this 4 to 6 digit PIN from inside the Admin Panel after first unlock.
           </p>
         </div>

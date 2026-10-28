@@ -254,29 +254,29 @@ export const ReportingEngineView: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 uppercase">
+            <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-md bg-[#6366F1]/10 text-[#6366F1] border border-[#6366F1]/20 uppercase tracking-[0.98px]">
               Reporting Engine
             </span>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#15151C] dark:text-[#E2E8F0] tracking-[-0.6px]">
               Enterprise Reports & Data Export
             </h1>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-[#7C8CA5] mt-1">
             Export Order Reports, Customer Ledgers, and Product Inventories into PDF, CSV, Excel (.xlsx), and Google Sheets.
           </p>
         </div>
 
         {/* Dataset Tabs */}
-        <div className="flex items-center p-1 rounded-2xl bg-slate-200/80 dark:bg-slate-800/80 border border-slate-300/60 dark:border-slate-700/60 self-start md:self-auto shadow-xs">
+        <div className="flex items-center p-1 rounded-2xl bg-[#EDEDF5] dark:bg-[#0D1320] border border-[#D4D4DB] dark:border-[#1E293B] self-start md:self-auto shadow-inner">
           <button
             onClick={() => {
               setActiveDataset('orders');
               setGoogleSheetResult(null);
             }}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold active:scale-[0.97] transition-all ${
               activeDataset === 'orders'
-                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-[#6366F1] text-white shadow-[0_6px_18px_-6px_rgba(99,102,241,0.7)]'
+                : 'text-[#6A6A71] dark:text-[#94A3B8] hover:text-[#15151C] dark:hover:text-white'
             }`}
           >
             <ShoppingCart className="w-3.5 h-3.5" />
@@ -288,10 +288,10 @@ export const ReportingEngineView: React.FC = () => {
               setActiveDataset('customers');
               setGoogleSheetResult(null);
             }}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold active:scale-[0.97] transition-all ${
               activeDataset === 'customers'
-                ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-[#6366F1] text-white shadow-[0_6px_18px_-6px_rgba(99,102,241,0.7)]'
+                : 'text-[#6A6A71] dark:text-[#94A3B8] hover:text-[#15151C] dark:hover:text-white'
             }`}
           >
             <Users className="w-3.5 h-3.5" />
@@ -303,10 +303,10 @@ export const ReportingEngineView: React.FC = () => {
               setActiveDataset('products');
               setGoogleSheetResult(null);
             }}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold active:scale-[0.97] transition-all ${
               activeDataset === 'products'
-                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-[#6366F1] text-white shadow-[0_6px_18px_-6px_rgba(99,102,241,0.7)]'
+                : 'text-[#6A6A71] dark:text-[#94A3B8] hover:text-[#15151C] dark:hover:text-white'
             }`}
           >
             <Package className="w-3.5 h-3.5" />
@@ -316,9 +316,9 @@ export const ReportingEngineView: React.FC = () => {
       </div>
 
       {/* Export Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
-        <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300">
-          <Download className="w-4 h-4 text-indigo-500" />
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4 orderflow-card shadow-xs">
+        <div className="flex items-center gap-2 text-xs font-bold text-[#15151C] dark:text-[#E2E8F0]">
+          <Download className="w-4 h-4 text-[#6366F1]" />
           <span>Export Options for {activeDataset === 'orders' ? 'Orders' : activeDataset === 'customers' ? 'Customers' : 'Products'}:</span>
         </div>
 
@@ -326,7 +326,7 @@ export const ReportingEngineView: React.FC = () => {
           {/* PDF Export */}
           <button
             onClick={handleExportPdf}
-            className="px-3 py-1.5 rounded-xl text-xs font-bold border border-rose-200 dark:border-rose-900/40 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-700 dark:text-rose-300 flex items-center gap-1.5 shadow-xs transition-colors"
+            className="px-3.5 py-2 rounded-xl text-xs font-bold border border-rose-300 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 hover:brightness-105 text-rose-700 dark:text-rose-300 flex items-center gap-1.5 active:scale-[0.97] transition-all shadow-xs"
           >
             <FileText className="w-3.5 h-3.5 text-rose-600" />
             Export PDF
@@ -335,7 +335,7 @@ export const ReportingEngineView: React.FC = () => {
           {/* Excel XLSX Export */}
           <button
             onClick={handleExportExcel}
-            className="px-3 py-1.5 rounded-xl text-xs font-bold border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5 shadow-xs transition-colors"
+            className="px-3.5 py-2 rounded-xl text-xs font-bold border border-emerald-300 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/40 hover:brightness-105 text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5 active:scale-[0.97] transition-all shadow-xs"
           >
             <Table className="w-3.5 h-3.5 text-emerald-600" />
             Export Excel (.xlsx)
@@ -344,9 +344,9 @@ export const ReportingEngineView: React.FC = () => {
           {/* CSV Export */}
           <button
             onClick={handleExportCsv}
-            className="px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 shadow-xs transition-colors"
+            className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[#D4D4DB] dark:border-[#1E293B] bg-white dark:bg-[#111A2B] hover:bg-black/5 dark:hover:bg-[#202632] text-[#15151C] dark:text-[#E2E8F0] flex items-center gap-1.5 active:scale-[0.97] transition-all shadow-xs"
           >
-            <Download className="w-3.5 h-3.5 text-slate-500" />
+            <Download className="w-3.5 h-3.5 text-[#7C8CA5]" />
             Export CSV
           </button>
 
@@ -354,7 +354,7 @@ export const ReportingEngineView: React.FC = () => {
           <button
             onClick={handleExportGoogleSheets}
             disabled={isExportingSheets}
-            className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 flex items-center gap-1.5 shadow-md transition-colors disabled:opacity-50"
+            className="btn-orderflow-glow px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#6366F1] shadow-[0_6px_18px_-6px_rgba(99,102,241,0.7)] flex items-center gap-1.5 active:scale-[0.97] transition-all disabled:opacity-50"
           >
             <Cloud className={`w-3.5 h-3.5 ${isExportingSheets ? 'animate-spin' : ''}`} />
             {isExportingSheets ? 'Syncing...' : 'Sync to Google Sheets'}
@@ -363,7 +363,7 @@ export const ReportingEngineView: React.FC = () => {
           {/* Print */}
           <button
             onClick={() => window.print()}
-            className="p-1.5 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 text-slate-600 dark:text-slate-400"
+            className="p-2 rounded-xl text-xs font-bold border border-[#D4D4DB] dark:border-[#1E293B] bg-white dark:bg-[#111A2B] hover:bg-black/5 dark:hover:bg-[#202632] text-[#7C8CA5] hover:text-[#15151C] dark:hover:text-[#E2E8F0] active:scale-[0.97] transition-all"
             title="Print View"
           >
             <Printer className="w-4 h-4" />
@@ -398,46 +398,46 @@ export const ReportingEngineView: React.FC = () => {
         <div className="space-y-6">
           {/* KPI Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Filtered Revenue</span>
-              <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono tabular-nums mt-1">
+            <div className="p-4 orderflow-card-sm shadow-xs">
+              <span className="text-[10px] font-bold text-[#7C8CA5] uppercase tracking-[0.98px] block">Filtered Revenue</span>
+              <div className="text-xl sm:text-2xl font-black text-[#15151C] dark:text-[#E2E8F0] font-mono tabular-nums mt-1 tracking-[-0.6px]">
                 ${totalOrderSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Gross Profit</span>
-              <div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono tabular-nums mt-1">
+            <div className="p-4 orderflow-card-sm shadow-xs">
+              <span className="text-[10px] font-bold text-[#7C8CA5] uppercase tracking-[0.98px] block">Gross Profit</span>
+              <div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono tabular-nums mt-1 tracking-[-0.6px]">
                 ${totalOrderProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Orders Count</span>
-              <div className="text-xl sm:text-2xl font-black text-indigo-600 dark:text-indigo-400 font-mono tabular-nums mt-1">
+            <div className="p-4 orderflow-card-sm shadow-xs">
+              <span className="text-[10px] font-bold text-[#7C8CA5] uppercase tracking-[0.98px] block">Orders Count</span>
+              <div className="text-xl sm:text-2xl font-black text-[#6366F1] font-mono tabular-nums mt-1 tracking-[-0.6px]">
                 {filteredOrders.length}
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Units Dispatched</span>
-              <div className="text-xl sm:text-2xl font-black text-blue-600 dark:text-blue-400 font-mono tabular-nums mt-1">
+            <div className="p-4 orderflow-card-sm shadow-xs">
+              <span className="text-[10px] font-bold text-[#7C8CA5] uppercase tracking-[0.98px] block">Units Dispatched</span>
+              <div className="text-xl sm:text-2xl font-black text-blue-600 dark:text-blue-400 font-mono tabular-nums mt-1 tracking-[-0.6px]">
                 {totalUnitsDispatched}
               </div>
             </div>
           </div>
 
           {/* Orders Filter Bar */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+          <div className="orderflow-card p-4 shadow-xs">
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 text-xs">
               <div className="sm:col-span-5 relative">
-                <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                <Search className="w-4 h-4 absolute left-3 top-2.5 text-[#7C8CA5]" />
                 <input
                   type="text"
                   placeholder="Search order #, customer, company, or sales rep..."
                   value={orderSearch}
                   onChange={(e) => setOrderSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100"
+                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-[#D4D4DB] dark:border-[#1E293B] bg-[#F7F7FF] dark:bg-[#070B14] text-[#15151C] dark:text-[#E2E8F0] placeholder-[#7C8CA5] focus:outline-hidden focus:border-[#6366F1] focus:ring-1 focus:ring-[#6366F1] transition-all"
                 />
               </div>
 
@@ -445,7 +445,7 @@ export const ReportingEngineView: React.FC = () => {
                 <select
                   value={orderLocation}
                   onChange={(e) => setOrderLocation(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-medium"
+                  className="w-full px-3 py-2 rounded-xl border border-[#D4D4DB] dark:border-[#1E293B] bg-[#F7F7FF] dark:bg-[#070B14] text-[#15151C] dark:text-[#E2E8F0] font-medium focus:border-[#6366F1] focus:ring-1 focus:ring-[#6366F1] focus:outline-hidden transition-all"
                 >
                   <option value="all">All Geographic Locations</option>
                   {locations.map((loc) => (

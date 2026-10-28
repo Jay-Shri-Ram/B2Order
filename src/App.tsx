@@ -82,7 +82,10 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-200">
+    <div className="min-h-screen bg-[#F7F7FF] dark:bg-[#070B14] text-[#15151C] dark:text-[#E2E8F0] flex flex-col transition-colors duration-200 relative overflow-x-hidden">
+      {/* OrderFlow Pro Atmospheric Radial Background Glow */}
+      <div className="fixed inset-0 bg-orderflow-radial pointer-events-none opacity-40 dark:opacity-85 z-0" />
+
       {/* Vertical Navigation Bar on Desktop / Mobile Drawer */}
       <Navbar
         currentView={currentView}
@@ -92,17 +95,17 @@ const AppContent: React.FC = () => {
       />
 
       {/* Main View Area (offset by 64px/256px on desktop for vertical sidebar) */}
-      <div className="flex-1 flex flex-col lg:pl-64">
+      <div className="flex-1 flex flex-col lg:pl-64 relative z-10">
         {/* Universal Top Header with Logged-in Company Name & Session Status */}
-        <header className="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 px-4 sm:px-6 py-2.5 flex items-center justify-between transition-colors shadow-xs">
+        <header className="sticky top-0 z-30 bg-[#EDEDF5]/85 dark:bg-[#0D1320]/80 backdrop-blur-xl border-b border-[#D4D4DB]/70 dark:border-[#1E293B] px-4 sm:px-6 py-3 flex items-center justify-between transition-colors shadow-xs">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="Connected to Sync Engine" />
               <div className="flex items-baseline gap-2 min-w-0">
-                <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight truncate" title={companyName}>
+                <span className="text-sm sm:text-base font-extrabold text-[#15151C] dark:text-[#E2E8F0] tracking-[-0.6px] truncate" title={companyName}>
                   {companyName}
                 </span>
-                <span className="hidden md:inline-block text-[11px] font-mono text-indigo-600 dark:text-indigo-400 font-semibold px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 shrink-0">
+                <span className="hidden md:inline-block text-[11px] font-mono text-[#6366F1] font-semibold px-2 py-0.5 rounded-md bg-[#6366F1]/10 border border-[#6366F1]/20 shrink-0">
                   {ownerName ? `Owner: ${ownerName}` : 'Enterprise Wholesale'}
                 </span>
               </div>
@@ -111,23 +114,23 @@ const AppContent: React.FC = () => {
 
           <div className="flex items-center gap-3 text-xs shrink-0">
             {currentUser.phone && (
-              <span className="hidden sm:inline-flex items-center gap-1 font-mono text-[11px] text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2 py-1 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
+              <span className="hidden sm:inline-flex items-center gap-1.5 font-mono text-[11px] text-[#6A6A71] dark:text-[#94A3B8] bg-white/70 dark:bg-[#111A2B] px-2.5 py-1 rounded-lg border border-[#D4D4DB] dark:border-[#1E293B]">
                 <Phone className="w-3 h-3 text-emerald-500" />
                 {currentUser.phone}
               </span>
             )}
             <div className="flex items-center gap-2">
-              <span className="hidden md:inline text-[11px] text-slate-400">User:</span>
-              <span className="font-bold text-slate-800 dark:text-slate-200 font-mono text-[11px]">
+              <span className="hidden md:inline text-[11px] text-[#7C8CA5]">User:</span>
+              <span className="font-bold text-[#15151C] dark:text-[#E2E8F0] font-mono text-[11px]">
                 {currentUser.name}
               </span>
-              <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+              <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded font-bold bg-[#6366F1]/10 text-[#6366F1] border border-[#6366F1]/20">
                 {currentUser.role}
               </span>
               <button
                 onClick={() => setShowAuthModal(true)}
                 title="Switch Account or Role"
-                className="p-1 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ml-1"
+                className="p-1.5 rounded-lg text-[#7C8CA5] hover:text-[#6366F1] hover:bg-black/5 dark:hover:bg-[#202632] active:scale-[0.97] transition-all ml-1"
               >
                 <LogOut className="w-3.5 h-3.5" />
               </button>
@@ -139,10 +142,10 @@ const AppContent: React.FC = () => {
           <AnimatePresence mode="wait">
             <motion.div
               key={currentView}
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.16, ease: 'easeOut' }}
             >
               {currentView === 'order-entry' && <OrderEntryView />}
               {currentView === 'order-history' && <OrderHistoryView />}
@@ -159,20 +162,20 @@ const AppContent: React.FC = () => {
         </main>
 
         {/* Quiet Corporate Footer */}
-        <footer className="border-t border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 py-4 px-6 text-center text-xs text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <footer className="border-t border-[#D4D4DB]/70 dark:border-[#1E293B] bg-[#EDEDF5]/70 dark:bg-[#0D1320]/70 py-4 px-6 text-center text-xs text-[#7C8CA5] flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-700 dark:text-slate-300">Apex B2B Order Hub</span>
+            <span className="font-bold text-[#15151C] dark:text-[#E2E8F0]">Apex B2B Order Hub</span>
             <span>·</span>
-            <span>Offline-First Enterprise ERP</span>
+            <span>OrderFlow Pro Architecture</span>
           </div>
           <div className="flex items-center gap-3 text-[11px] font-mono">
             <span>
-              Active Role: <strong className="uppercase text-indigo-600 dark:text-indigo-400">{currentUser.role}</strong>
+              Active Role: <strong className="uppercase text-[#6366F1]">{currentUser.role}</strong>
             </span>
             <span>·</span>
             <button
               onClick={() => setShowAuthModal(true)}
-              className="text-indigo-600 dark:text-indigo-400 hover:underline font-bold"
+              className="text-[#6366F1] hover:underline font-bold"
             >
               Switch Role / Sign In
             </button>
@@ -182,7 +185,7 @@ const AppContent: React.FC = () => {
 
       {/* Floating System Toast */}
       {toastMessage && (
-        <div className="fixed bottom-4 right-4 z-50 max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xl flex items-start gap-3 animate-in slide-in-from-bottom-5 duration-200">
+        <div className="fixed bottom-4 right-4 z-50 max-w-sm orderflow-card p-4 shadow-xl flex items-start gap-3 animate-in slide-in-from-bottom-5 duration-200">
           {toastMessage.type === 'restricted' ? (
             <ShieldAlert className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
           ) : (
@@ -191,12 +194,12 @@ const AppContent: React.FC = () => {
             </div>
           )}
           <div className="flex-1 text-xs">
-            <div className="font-bold text-slate-900 dark:text-white">{toastMessage.title}</div>
-            <div className="text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{toastMessage.body}</div>
+            <div className="font-bold text-[#15151C] dark:text-[#E2E8F0]">{toastMessage.title}</div>
+            <div className="text-[#6A6A71] dark:text-[#94A3B8] mt-0.5 line-clamp-2">{toastMessage.body}</div>
           </div>
           <button
             onClick={() => setToastMessage(null)}
-            className="text-slate-400 hover:text-slate-600 text-xs font-bold"
+            className="text-[#7C8CA5] hover:text-[#15151C] dark:hover:text-white text-xs font-bold"
           >
             ✕
           </button>

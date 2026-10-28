@@ -121,3 +121,27 @@ This document summarizes the comprehensive enterprise features, UI/UX upgrades, 
   * Deployed to live Firebase project via `DeployRules` RPC.
   * Enforces user data ownership, immutable system activity audit logs, and authenticated admin configuration.
 * All stores persist locally in IndexedDB and synchronize with Firebase Cloud.
+
+---
+
+## 11. OrderFlow Pro Design System Integration (Attachment A4d0af6be0db9f65f)
+* **Color Palette & Design Tokens**:
+  * **Canvas Background**: Deep dark navy `#070B14` (dark) / `#F7F7FF` (light).
+  * **Surface Background**: `#0D1320` (semi-transparent `rgba(13, 19, 32, 0.72)`) with hairline borders `rgba(30, 41, 59, 0.85)` / `#1E293B`.
+  * **Raised Surfaces**: `#202632` and `#111A2B`.
+  * **Primary Accent**: `#6366F1` (Indigo), On-Primary `#FFFFFF`.
+  * **Typography Scale**: Ink `#E2E8F0`, Body `#94A3B8`, Muted `#7C8CA5`.
+* **Atmospheric Gradients & Micro-Elevation**:
+  * Dual-radial hero atmospheric gradient (`.bg-orderflow-radial`) rendered on top containers.
+  * Layered micro-shadows: `rgba(15, 23, 42, 0.04) 0px 1px 2px 0px, rgba(15, 23, 42, 0.18) 0px 8px 24px -12px`.
+  * Indigo active glow: `rgba(99, 102, 241, 0.7) 0px 6px 18px -6px`.
+* **Typographic Hierarchy**:
+  * Inter display heading: `tracking-[-1.2px]`, font weight 800.
+  * Section heading: `tracking-[-0.6px]`, font weight 800.
+  * Uppercase micro-labels: font size `10.88px`, letter spacing `0.98px` (`.tracking-label-sm`).
+  * Tabular figures (`tabular-nums font-mono`) for SKU codes, numeric metrics, and timestamps.
+* **Component Variants & Micro-Interactions**:
+  * `.btn-orderflow-primary`: `rgba(99, 102, 241, 0.1)` bg with `1px solid rgba(99, 102, 241, 0.28)`, `#6366F1` text, hover brightness, and `active:scale-[0.97]`.
+  * `.btn-orderflow-glow`: `#6366F1` solid bg with `#FFFFFF` text and deep indigo elevation shadow.
+  * `.btn-orderflow-filled`: `#334155` background with `#818CF8` text and `active:scale-[0.97]`.
+  * `.orderflow-card` & `.orderflow-card-sm`: Rounded 20px / 16px with hairline borders and backdrop blur.

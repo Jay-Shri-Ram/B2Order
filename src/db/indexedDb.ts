@@ -318,6 +318,9 @@ class ApexDatabase {
     if (!settings.adminPassword) {
       settings.adminPassword = INITIAL_SETTINGS.adminPassword;
     }
+    if (!settings.adminPin) {
+      settings.adminPin = INITIAL_SETTINGS.adminPin || '1234';
+    }
     return settings as AppSettings;
   }
 

@@ -20,6 +20,7 @@ import { ApexDB } from '../db/indexedDb';
 import { useAuth } from '../context/AuthContext';
 import { SmsNotifier } from '../services/smsService';
 import { FirebaseSync } from '../services/firebaseSync';
+import { formatIndianPhone } from '../utils/indianPhone';
 
 export const StaffManagementView: React.FC = () => {
   const { currentUser, refreshStaff } = useAuth();
@@ -39,7 +40,7 @@ export const StaffManagementView: React.FC = () => {
   const [form, setForm] = useState({
     name: '',
     email: '',
-    phone: '+1 (555) ',
+    phone: '+91 ',
     role: 'salesman' as UserRole,
     initialPassword: ''
   });
@@ -122,7 +123,7 @@ export const StaffManagementView: React.FC = () => {
       id: `staff-${form.role.slice(0, 3)}-${Date.now()}`,
       name: form.name.trim(),
       email: form.email.trim().toLowerCase(),
-      phone: form.phone.trim(),
+      phone: formatIndianPhone(form.phone) || '+91 98765 43210',
       role: form.role,
       active: true,
       lastLoginAt: 'Never logged in',
@@ -450,11 +451,15 @@ export const StaffManagementView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Phone</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300">Phone</label>
+                  <span className="text-[10px] font-mono text-indigo-600 font-bold">+91 Format</span>
+                </div>
                 <input
-                  type="text"
+                  type="tel"
+                  placeholder="+91 98765 43210"
                   value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  onChange={(e) => setForm({ ...form, phone: formatIndianPhone(e.target.value) })}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-mono text-slate-900 dark:text-slate-100"
                 />
               </div>

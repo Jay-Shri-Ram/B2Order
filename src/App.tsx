@@ -21,10 +21,10 @@ import { ReportingEngineView } from './views/ReportingEngineView';
 import { SystemActivityView } from './views/SystemActivityView';
 import { LoginView } from './views/LoginView';
 import { SmsMessage } from './types';
-import { Smartphone, CheckCircle, ShieldAlert } from 'lucide-react';
+import { Smartphone, CheckCircle, ShieldAlert, Building2, Phone, LogOut } from 'lucide-react';
 
 const AppContent: React.FC = () => {
-  const { currentUser, canAccess, isAuthenticated } = useAuth();
+  const { currentUser, canAccess, isAuthenticated, companyName, ownerName, logout } = useAuth();
   const [currentView, setCurrentView] = useState<string>('order-entry');
   const [smsDrawerOpen, setSmsDrawerOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ title: string; body: string; type?: string } | null>(null);
@@ -93,6 +93,48 @@ const AppContent: React.FC = () => {
 
       {/* Main View Area (offset by 64px/256px on desktop for vertical sidebar) */}
       <div className="flex-1 flex flex-col lg:pl-64">
+        {/* Universal Top Header with Logged-in Company Name & Session Status */}
+        <header className="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 px-4 sm:px-6 py-2.5 flex items-center justify-between transition-colors shadow-xs">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <div className="flex items-baseline gap-2 min-w-0">
+                <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight truncate" title={companyName}>
+                  {companyName}
+                </span>
+                <span className="hidden md:inline-block text-[11px] font-mono text-indigo-600 dark:text-indigo-400 font-semibold px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 shrink-0">
+                  {ownerName ? `Owner: ${ownerName}` : 'Enterprise Wholesale'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 text-xs shrink-0">
+            {currentUser.phone && (
+              <span className="hidden sm:inline-flex items-center gap-1 font-mono text-[11px] text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2 py-1 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
+                <Phone className="w-3 h-3 text-emerald-500" />
+                {currentUser.phone}
+              </span>
+            )}
+            <div className="flex items-center gap-2">
+              <span className="hidden md:inline text-[11px] text-slate-400">User:</span>
+              <span className="font-bold text-slate-800 dark:text-slate-200 font-mono text-[11px]">
+                {currentUser.name}
+              </span>
+              <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                {currentUser.role}
+              </span>
+              <button
+                onClick={() => setShowAuthModal(true)}
+                title="Switch Account or Role"
+                className="p-1 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ml-1"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </header>
+
         <main className="flex-1 pb-16">
           <AnimatePresence mode="wait">
             <motion.div

@@ -3,6 +3,7 @@ import { MessageSquare, Send, CheckCheck, AlertTriangle, ShieldCheck, X, Refresh
 import { SmsMessage, AppSettings } from '../types';
 import { ApexDB } from '../db/indexedDb';
 import { SmsNotifier } from '../services/smsService';
+import { formatIndianPhone } from '../utils/indianPhone';
 
 interface SmsDrawerProps {
   isOpen: boolean;
@@ -49,7 +50,7 @@ export const SmsDrawer: React.FC<SmsDrawerProps> = ({ isOpen, onClose }) => {
 
     setIsSending(true);
     try {
-      const targetPhone = settings?.ownerMobileNumber || '+1 (555) 948-2211';
+      const targetPhone = formatIndianPhone(settings?.ownerMobileNumber || '+91 98765 43210');
       await ApexDB.logSmsMessage({
         recipientPhone: targetPhone,
         recipientName: 'Company Owner (Mobile)',
@@ -89,7 +90,7 @@ export const SmsDrawer: React.FC<SmsDrawerProps> = ({ isOpen, onClose }) => {
                 </span>
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                To: <span className="font-mono text-slate-700 dark:text-slate-300 font-semibold">{settings?.ownerMobileNumber || '+1 (555) 948-2211'}</span>
+                To: <span className="font-mono text-slate-700 dark:text-slate-300 font-semibold">{formatIndianPhone(settings?.ownerMobileNumber || '+91 98765 43210')}</span>
               </p>
             </div>
           </div>

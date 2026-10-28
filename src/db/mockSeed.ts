@@ -17,44 +17,52 @@ export const INITIAL_STAFF: StaffMember[] = [
     name: 'Alexander Wright',
     email: 'admin@apexerp.internal',
     role: 'admin',
-    phone: '+1 (555) 234-8901',
+    phone: '+91 98765 43210',
     active: true,
     lastLoginAt: new Date(Date.now() - 1000 * 60 * 12).toISOString(),
     createdAt: '2026-01-10T08:00:00Z',
-    tempPassword: 'ADMIN1'
+    tempPassword: 'ADMIN1',
+    companyName: 'Apex B2B Order Hub',
+    ownerName: 'Ashu Chauhan'
   },
   {
     id: 'staff-mgr-01',
     name: 'Elena Rostova',
     email: 'elena.rostova@apexerp.internal',
     role: 'manager',
-    phone: '+1 (555) 345-6789',
+    phone: '+91 98112 23344',
     active: true,
     lastLoginAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
     createdAt: '2026-01-15T09:30:00Z',
-    tempPassword: 'MGR123'
+    tempPassword: 'MGR123',
+    companyName: 'Apex B2B Order Hub',
+    ownerName: 'Ashu Chauhan'
   },
   {
     id: 'staff-sales-01',
     name: 'Marcus Vance',
     email: 'marcus.vance@apexerp.internal',
     role: 'salesman',
-    phone: '+1 (555) 456-7890',
+    phone: '+91 97123 45678',
     active: true,
     lastLoginAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
     createdAt: '2026-02-01T10:15:00Z',
-    tempPassword: 'SALE01'
+    tempPassword: 'SALE01',
+    companyName: 'Apex B2B Order Hub',
+    ownerName: 'Ashu Chauhan'
   },
   {
     id: 'staff-sales-02',
     name: 'Chloe Bennett',
     email: 'chloe.b@apexerp.internal',
     role: 'salesman',
-    phone: '+1 (555) 567-8901',
+    phone: '+91 99234 56789',
     active: false,
     lastLoginAt: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
     createdAt: '2026-02-14T11:00:00Z',
-    tempPassword: 'SALE02'
+    tempPassword: 'SALE02',
+    companyName: 'Apex B2B Order Hub',
+    ownerName: 'Ashu Chauhan'
   }
 ];
 
@@ -80,7 +88,7 @@ export const INITIAL_CUSTOMERS: Customer[] = [
     code: 'CUST-0841',
     name: 'Robert Hastings',
     company: 'Metropolitan Bistro Group',
-    phone: '+1 (555) 702-9912',
+    phone: '+91 98220 11223',
     email: 'purchasing@metrobistro.com',
     address: '840 Market Street, Suite 400',
     location: 'Financial District',
@@ -94,7 +102,7 @@ export const INITIAL_CUSTOMERS: Customer[] = [
     code: 'CUST-0842',
     name: 'Siddharth Patel',
     company: 'Apex Artisan Roasters',
-    phone: '+1 (555) 881-4432',
+    phone: '+91 97330 22334',
     email: 'orders@apexroasters.co',
     address: '124 Industrial Way, Pier 18',
     location: 'Westside Industrial',
@@ -108,7 +116,7 @@ export const INITIAL_CUSTOMERS: Customer[] = [
     code: 'CUST-0843',
     name: 'Samantha Lee',
     company: 'Pacific Harbour Hotel & Suites',
-    phone: '+1 (555) 412-8876',
+    phone: '+91 98440 33445',
     email: 'inventory@pacificharbour.org',
     address: '99 Marina Boulevard, Tower East',
     location: 'Harbour Bay',
@@ -122,10 +130,10 @@ export const INITIAL_CUSTOMERS: Customer[] = [
     code: 'CUST-0844',
     name: 'David Kowalski',
     company: 'Summit Gourmet Grocers',
-    phone: '+1 (555) 909-3211',
+    phone: '+91 99550 44556',
     email: 'd.kowalski@summitgrocers.com',
     address: '310 Crestview Avenue',
-    location: 'North Metro',
+    location: 'North Suburbs',
     creditLimit: 18000,
     outstandingBalance: 17850,
     active: true,
@@ -136,7 +144,7 @@ export const INITIAL_CUSTOMERS: Customer[] = [
     code: 'CUST-0845',
     name: 'Nadia Thorne',
     company: 'Verdant Cafe & Catering',
-    phone: '+1 (555) 633-1200',
+    phone: '+91 98660 55667',
     email: 'nadia@verdantcatering.com',
     address: '45 Greenpoint Lane, Warehouse B',
     location: 'Downtown District',
@@ -474,12 +482,13 @@ export const INITIAL_TERRITORIES: string[] = [
 ];
 
 export const INITIAL_SETTINGS: AppSettings = {
-  companyName: 'Apex Logistics & B2B Order Hub',
-  companyAddress: '500 Enterprise Way, Central Logistics Park, Bay District',
-  companyPhone: '+1 (800) 555-APEX',
-  ownerMobileNumber: '+1 (555) 948-2211',
+  companyName: 'Apex B2B Order Hub',
+  ownerName: 'Ashu Chauhan',
+  companyAddress: 'Plot 42, Sector 18, Commercial Industrial Area',
+  companyPhone: '+91 98765 43210',
+  ownerMobileNumber: '+91 98765 43210',
   ownerEmail: 'aashuchauhan12042004@gmail.com',
-  currency: '$',
+  currency: '₹',
   taxPercentage: 0, // Cut estimated tax by default, optional
   smsNotificationsEnabled: true,
   autoSyncEnabled: true,
@@ -489,26 +498,27 @@ export const INITIAL_SETTINGS: AppSettings = {
     projectId: 'gen-lang-client-0838880698',
     storageBucket: 'gen-lang-client-0838880698.firebasestorage.app',
     messagingSenderId: '529817740631',
-    appId: '1:529817740631:web:4b55969795a62111ea0a12'
+    appId: '1:529817740631:web:4b55969795a62111ea0a12',
+    firestoreDatabaseId: 'ai-studio-apexb2borderhube-b9535872-a953-4884-a9f6-e76d7de82710'
   },
   isFirebaseConnected: true,
   lastSyncTimestamp: new Date().toISOString(),
   adminPassword: 'APEX99', // 6-character master Admin password
+  adminPin: '1234', // 4-6 digit Admin Console PIN (Default: 1234, editable from Admin Console)
   rolePermissions: INITIAL_ROLE_PERMISSIONS,
   territories: INITIAL_TERRITORIES
 };
-
 
 export const INITIAL_AUDIT_LOGS: AuditLog[] = [
   {
     id: 'aud-001',
     timestamp: '2026-03-19T07:45:10Z',
     actorId: 'staff-admin-01',
-    actorName: 'Alexander Wright',
+    actorName: 'Ashu Chauhan',
     actorRole: 'admin',
     action: 'SYSTEM_BOOT',
     targetEntity: 'ApexDB',
-    details: 'System initialized with dynamic RBAC matrix and Google Workspace integration.'
+    details: 'System initialized with Indian mobile formatting, 4-6 digit PIN protection, and Firebase Cloud integration.'
   }
 ];
 
@@ -516,11 +526,11 @@ export const INITIAL_SMS_LOGS: SmsMessage[] = [
   {
     id: 'sms-001',
     timestamp: '2026-03-19T08:31:06Z',
-    recipientPhone: '+1 (555) 948-2211',
-    recipientName: 'Company Owner (Mobile)',
+    recipientPhone: '+91 98765 43210',
+    recipientName: 'Ashu Chauhan (Owner)',
     orderNumber: 'ORD-2026-9021',
     type: 'order_confirmation',
-    message: '📦 [Apex ERP] New Order #ORD-2026-9021 received for Metropolitan Bistro Group. Total: $1,029.83.',
+    message: '📦 [Apex ERP] New Order #ORD-2026-9021 received for Metropolitan Bistro Group. Total: ₹1,029.83.',
     status: 'delivered',
     gateway: 'Apex Cloud Telecom Gateway'
   }

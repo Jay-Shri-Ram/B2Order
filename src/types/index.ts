@@ -11,6 +11,8 @@ export interface StaffMember {
   lastLoginAt: string;
   createdAt: string;
   tempPassword?: string;
+  companyName?: string;
+  ownerName?: string;
 }
 
 export interface Customer {
@@ -173,6 +175,7 @@ export type RolePermissionsMap = {
 
 export interface AppSettings {
   companyName: string;
+  ownerName?: string;
   companyAddress: string;
   companyPhone: string;
   ownerMobileNumber: string;
@@ -186,6 +189,7 @@ export interface AppSettings {
   isFirebaseConnected?: boolean;
   lastSyncTimestamp?: string;
   adminPassword?: string; // 6-character / 6-word password for Admin Console
+  adminPin?: string; // 4 to 6 digit Admin Console PIN
   rolePermissions?: RolePermissionsMap; // Dynamic module access toggles per role
   googleSpreadsheetId?: string;
   googleSpreadsheetUrl?: string;

@@ -27,6 +27,7 @@ import { ApexDB } from '../db/indexedDb';
 import { useAuth } from '../context/AuthContext';
 import { FirebaseSync } from '../services/firebaseSync';
 import { downloadCustomerTemplate, parseCustomerCsv } from '../services/exportService';
+import { formatIndianPhone, isValidIndianPhone } from '../utils/indianPhone';
 
 export const CustomerMasterView: React.FC = () => {
   const { currentUser } = useAuth();
@@ -93,7 +94,7 @@ export const CustomerMasterView: React.FC = () => {
       code: `CUST-08${Math.floor(10 + Math.random() * 89)}`,
       name: '',
       company: '',
-      phone: '+1 (555) ',
+      phone: '+91 ',
       email: '',
       address: '',
       location: availableLocations[0] || 'Financial District',
@@ -110,7 +111,7 @@ export const CustomerMasterView: React.FC = () => {
       code: cust.code,
       name: cust.name,
       company: cust.company,
-      phone: cust.phone,
+      phone: formatIndianPhone(cust.phone),
       email: cust.email,
       address: cust.address,
       location: cust.location || 'Financial District',
@@ -128,12 +129,14 @@ export const CustomerMasterView: React.FC = () => {
       return;
     }
 
+    const formattedPhone = formatIndianPhone(form.phone);
+
     const saved: Customer = {
       id: editingCustomer ? editingCustomer.id : `cust-${Date.now()}`,
       code: form.code.trim(),
       name: form.name.trim(),
       company: form.company.trim(),
-      phone: form.phone.trim(),
+      phone: formattedPhone || '+91 98765 43210',
       email: form.email.trim(),
       address: form.address.trim(),
       location: form.location.trim() || 'Financial District',
@@ -478,11 +481,15 @@ export const CustomerMasterView: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Phone Number</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300">Mobile Phone</label>
+                  <span className="text-[10px] font-mono text-indigo-600 font-bold">+91 Format</span>
+                </div>
                 <input
-                  type="text"
+                  type="tel"
+                  placeholder="+91 98765 43210"
                   value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  onChange={(e) => setForm({ ...form, phone: formatIndianPhone(e.target.value) })}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-mono text-slate-900 dark:text-slate-100"
                 />
               </div>

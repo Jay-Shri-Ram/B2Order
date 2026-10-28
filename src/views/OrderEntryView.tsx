@@ -25,6 +25,7 @@ import { ApexDB } from '../db/indexedDb';
 import { useAuth } from '../context/AuthContext';
 import { SmsNotifier } from '../services/smsService';
 import { FirebaseSync } from '../services/firebaseSync';
+import { formatIndianPhone } from '../utils/indianPhone';
 
 export const OrderEntryView: React.FC = () => {
   const { currentUser } = useAuth();
@@ -215,7 +216,7 @@ export const OrderEntryView: React.FC = () => {
         orderNumber,
         customerId: selectedCustomer.id,
         customerName: selectedCustomer.name,
-        customerPhone: selectedCustomer.phone,
+        customerPhone: formatIndianPhone(selectedCustomer.phone),
         customerCompany: selectedCustomer.company,
         customerAddress: selectedCustomer.address,
         customerLocation: selectedCustomer.location,

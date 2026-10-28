@@ -1,5 +1,5 @@
 {
-  "summary":  "Detailed changelog and technical documentation of the system enhancements: Read-only System Activity audit logs view, Full Add/Edit/Delete in Catalog Master for Categories and Units, Dual-Worksheet Excel order export (Order Details & Items Breakdown), Master Admin 6-word password protection with in-panel modification, Geographic Territories manager & free-text location routing, Optional/removable sales tax with customizable percentage, Customer 360 view with new vs older orders history, Glassmorphism & subtle glow styling, and dark/light mode fix.",
-  "updatedAt":  "2026-10-21T15:29:03.631065930Z",
+  "summary":  "Comprehensive changelog of all recent system enhancements: Firebase Authentication integration, Indian mobile number formatting (+91), logged-in company name header display, 4-6 digit Admin Console PIN protection with in-panel change capability, embedded System Activity audit log stream, and zero build/lint errors.",
+  "updatedAt":  "2026-10-22T11:51:14.171238539Z",
   "userFacing":  true
 }

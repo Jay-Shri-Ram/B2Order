@@ -44,7 +44,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSmsDrawer,
   onLogout
 }) => {
-  const { currentUser, allStaff, switchUser, canAccess, isAdmin, logout } = useAuth();
+  const { currentUser, allStaff, switchUser, canAccess, isAdmin, logout, companyName, ownerName } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(FirebaseSync.getStatus());
   const [smsCount, setSmsCount] = useState<number>(0);
@@ -136,17 +136,17 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* ========================================================================= */}
       <aside className="hidden lg:flex fixed top-0 left-0 bottom-0 w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-col z-40 select-none">
         {/* Brand Header */}
-        <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-base shadow-sm">
+        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-2.5 overflow-hidden">
+            <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-base shadow-sm shrink-0">
               ▲
             </div>
-            <div>
-              <span className="text-base font-black text-slate-900 dark:text-white tracking-tight leading-none block">
-                Apex B2B
+            <div className="min-w-0 flex-1">
+              <span className="text-sm font-black text-slate-900 dark:text-white tracking-tight leading-tight block truncate" title={companyName}>
+                {companyName || 'Apex B2B Order Hub'}
               </span>
-              <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 tracking-wider uppercase font-semibold">
-                ERP Command Center
+              <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 tracking-wider uppercase font-semibold block truncate">
+                {ownerName ? `Owner: ${ownerName}` : 'ERP COMMAND CENTER'}
               </span>
             </div>
           </div>
@@ -280,13 +280,17 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* 2. MOBILE TOP BAR (With Slide-out Vertical Drawer for Mobile) */}
       {/* ========================================================================= */}
       <header className="lg:hidden sticky top-0 z-40 w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-black text-sm">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-black text-sm shrink-0">
             ▲
           </div>
-          <div>
-            <span className="text-sm font-black text-slate-900 dark:text-white tracking-tight">Apex B2B</span>
-            <span className="text-[10px] font-mono text-slate-400 block -mt-0.5">ERP PORTAL</span>
+          <div className="min-w-0">
+            <span className="text-sm font-black text-slate-900 dark:text-white tracking-tight truncate block max-w-[150px]">
+              {companyName || 'Apex B2B'}
+            </span>
+            <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 block -mt-0.5 truncate">
+              {ownerName || 'ERP PORTAL'}
+            </span>
           </div>
         </div>
 

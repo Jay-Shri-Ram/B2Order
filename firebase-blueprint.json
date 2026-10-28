@@ -1,0 +1,219 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with company information, owner details, Indian mobile format, and role",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the user",
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address",
+          "maxLength": 128
+        },
+        "companyName": {
+          "type": "string",
+          "description": "Company / Enterprise Name",
+          "maxLength": 128
+        },
+        "ownerName": {
+          "type": "string",
+          "description": "Owner / Representative Full Name",
+          "maxLength": 128
+        },
+        "mobileNumber": {
+          "type": "string",
+          "description": "Indian format mobile number (+91 XXXXX XXXXX)",
+          "maxLength": 20
+        },
+        "role": {
+          "type": "string",
+          "description": "Role of the user in the ERP",
+          "enum": ["admin", "manager", "salesman"]
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of account creation",
+          "maxLength": 64
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last update",
+          "maxLength": 64
+        }
+      },
+      "required": ["userId", "email", "companyName", "ownerName", "mobileNumber", "role"]
+    },
+    "SystemActivity": {
+      "title": "SystemActivity",
+      "description": "Immutable audit log event for monitoring user actions and security mutations",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique audit log identifier",
+          "maxLength": 128
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp when event occurred",
+          "maxLength": 64
+        },
+        "actorId": {
+          "type": "string",
+          "description": "User ID of the actor",
+          "maxLength": 128
+        },
+        "actorName": {
+          "type": "string",
+          "description": "Display name of actor",
+          "maxLength": 128
+        },
+        "actorRole": {
+          "type": "string",
+          "description": "Role of the actor",
+          "enum": ["admin", "manager", "salesman"]
+        },
+        "action": {
+          "type": "string",
+          "description": "Type of event/action executed",
+          "maxLength": 128
+        },
+        "targetEntity": {
+          "type": "string",
+          "description": "Entity affected by the action",
+          "maxLength": 128
+        },
+        "details": {
+          "type": "string",
+          "description": "Detailed description or audit parameters",
+          "maxLength": 1000
+        }
+      },
+      "required": ["id", "timestamp", "actorId", "actorName", "actorRole", "action", "targetEntity", "details"]
+    },
+    "AdminConfig": {
+      "title": "AdminConfig",
+      "description": "Admin console security configuration including 4-6 digit master PIN",
+      "type": "object",
+      "properties": {
+        "adminPin": {
+          "type": "string",
+          "description": "4-6 digit numeric/alphanumeric PIN for Admin Console access",
+          "maxLength": 12,
+          "minLength": 4
+        },
+        "companyName": {
+          "type": "string",
+          "description": "Registered company name",
+          "maxLength": 128
+        },
+        "ownerName": {
+          "type": "string",
+          "description": "Registered business owner name",
+          "maxLength": 128
+        },
+        "ownerMobileNumber": {
+          "type": "string",
+          "description": "Owner Indian mobile number",
+          "maxLength": 20
+        },
+        "ownerEmail": {
+          "type": "string",
+          "description": "Owner primary email",
+          "maxLength": 128
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of configuration update",
+          "maxLength": 64
+        }
+      },
+      "required": ["adminPin"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Wholesale B2B Order record",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique Order ID",
+          "maxLength": 128
+        },
+        "orderNumber": {
+          "type": "string",
+          "description": "Human-friendly Order Number",
+          "maxLength": 64
+        },
+        "customerId": {
+          "type": "string",
+          "description": "Customer Reference ID",
+          "maxLength": 128
+        },
+        "customerName": {
+          "type": "string",
+          "description": "Customer Name",
+          "maxLength": 128
+        },
+        "customerPhone": {
+          "type": "string",
+          "description": "Customer Indian Phone Number",
+          "maxLength": 20
+        },
+        "salesmanId": {
+          "type": "string",
+          "description": "Salesman ID",
+          "maxLength": 128
+        },
+        "salesmanName": {
+          "type": "string",
+          "description": "Salesman Name",
+          "maxLength": 128
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "Total order amount"
+        },
+        "status": {
+          "type": "string",
+          "description": "Order Status",
+          "enum": ["Pending", "Confirmed", "Processing", "Dispatched", "Delivered", "Cancelled"]
+        },
+        "paymentMethod": {
+          "type": "string",
+          "description": "Payment Method",
+          "enum": ["Cash", "Credit", "Bank Transfer"]
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "orderNumber", "customerId", "customerName", "salesmanId", "totalAmount", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Private user profile records keyed by auth UID"
+    },
+    "/system_activities/{activityId}": {
+      "schema": "SystemActivity",
+      "description": "Immutable system activity logs for security auditing"
+    },
+    "/admin_config/{configId}": {
+      "schema": "AdminConfig",
+      "description": "Admin console security configuration"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Wholesale orders placed by sales reps or managers"
+    }
+  }
+}
